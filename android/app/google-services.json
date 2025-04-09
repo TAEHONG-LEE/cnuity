@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "831779380655",
+    "project_id": "cnuity-9653b",
+    "storage_bucket": "cnuity-9653b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:831779380655:android:0d3b69ca150b098b15a35a",
+        "android_client_info": {
+          "package_name": "com.example.cnuity"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7zm0KA0dkxtfxeLMxYMaunFnl76wcHUk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
