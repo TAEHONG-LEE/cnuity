@@ -99,6 +99,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+            // 자동으로 다음 화면으로 넘어가는 버튼
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+              child: const Text(
+                '자동 로그인',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5197FF),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 24,
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () {
