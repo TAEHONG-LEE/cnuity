@@ -15,9 +15,21 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController passwordController = TextEditingController();
   bool _isProcessing = false;
 
+  // ✅ 화면 이동 메서드 분리
+  Future<void> navigateToLoginScreen(BuildContext context) async {
+    if (!context.mounted) return;
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
   // 회원가입
-  Future<void> register() async {
-    if (_isProcessing) return;
+  Future<bool> register() async {
+    if (_isProcessing) return false;
 
     setState(() => _isProcessing = true);
 
@@ -27,7 +39,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (password.length < 6) {
       Fluttertoast.showToast(msg: "비밀번호는 최소 6자 이상이어야 합니다.");
       setState(() => _isProcessing = false);
-      return;
+      return false;
     }
 
     try {
@@ -38,21 +50,15 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (user != null) {
         Fluttertoast.showToast(msg: "회원가입 성공");
-
-        if (context.mounted) {
-          // 🔥 context가 유효한 상태에서 이동
-          Future.microtask(() {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          });
-        }
+        await navigateToLoginScreen(context);
+        return true;
       } else {
         Fluttertoast.showToast(msg: "회원가입에 실패했습니다. 다시 시도해주세요.");
+        return false;
       }
     } on FirebaseAuthException catch (e) {
       Fluttertoast.showToast(msg: "에러 발생: ${e.message}");
+      return false;
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -90,7 +96,14 @@ class _SignupScreenState extends State<SignupScreen> {
               child:
                   _isProcessing
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('회원가입'),
+                      : const Text(
+                        '회원가입',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5197FF),
                 padding: const EdgeInsets.symmetric(

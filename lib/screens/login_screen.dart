@@ -73,7 +73,13 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: login,
-              child: const Text('이메일로 로그인'),
+              child: const Text(
+                '이메일로 로그인',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5197FF),
                 padding: const EdgeInsets.symmetric(
