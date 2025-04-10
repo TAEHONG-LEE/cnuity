@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/login_screen.dart'; // 로그인 화면
 import 'screens/signup_screen.dart'; // 회원가입 화면
+import 'screens/splash_screen.dart'; // 스플래시 화면
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF5197FF),
         useMaterial3: true,
       ),
-      home: const LoginScreen(), // 앱 시작 시 로그인 화면
+      home: const SplashScreen(), // 앱 시작 시 로그인 화면
     );
   }
 }

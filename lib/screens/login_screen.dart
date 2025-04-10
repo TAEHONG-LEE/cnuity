@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'signup_screen.dart'; // 회원가입 화면으로 이동
+import 'splash_screen.dart';
+import 'home/home_screen.dart'; // 홈 화면으로 이동
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +16,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  Future<void> navigateToLoginScreen(BuildContext context) async {
+    if (!context.mounted) return;
+    await Future.delayed(const Duration(milliseconds: 300));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+    );
+  }
+
   Future<void> login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
@@ -25,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       Fluttertoast.showToast(msg: "로그인 성공");
-      // TODO: 로그인 성공 후 홈 화면 이동 구현
+      await navigateToLoginScreen(context);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         Fluttertoast.showToast(msg: "사용자를 찾을 수 없습니다.");
