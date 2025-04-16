@@ -14,6 +14,33 @@ class KkaezamSeatMapScreen extends StatelessWidget {
     required this.roomDocId,
   });
 
+  Color seatColor(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green;
+      case 'reserved':
+        return Colors.orange;
+      case 'sleeping':
+        return Colors.blue;
+      case 'wake_waiting':
+        return Colors.amber;
+      case 'woken_by_self':
+        return Colors.lightGreen;
+      case 'woken_by_other':
+        return Colors.deepPurple;
+      case 'done':
+        return Colors.grey;
+      case 'free':
+        return Colors.brown;
+      default:
+        return Colors.black;
+    }
+  }
+
+  bool canReserve(String status) {
+    return status == 'available';
+  }
+
   @override
   Widget build(BuildContext context) {
     final seatsRef = FirebaseFirestore.instance
@@ -56,25 +83,24 @@ class KkaezamSeatMapScreen extends StatelessWidget {
                 final seatNumber = index + 1;
                 final status = seatMap[seatNumber] ?? 'available';
 
-                Color color;
-                switch (status) {
-                  case 'reserved':
-                    color = Colors.purple;
-                    break;
-                  case 'free':
-                    color = Colors.brown;
-                    break;
-                  default:
-                    color = Colors.green;
-                }
-
                 return SeatBox(
                   number: seatNumber,
-                  color: color,
+                  color: seatColor(status),
                   onTap: () async {
-                    final seatDoc = seatsRef.doc(seatNumber.toString());
+                    if (!canReserve(status)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '$seatNumber번 좌석은 예약할 수 없습니다. 상태: $status',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
 
-                    await seatDoc.update({'status': 'reserved'});
+                    await seatsRef.doc(seatNumber.toString()).update({
+                      'status': 'reserved',
+                    });
 
                     await FirebaseFirestore.instance
                         .collection('reading_rooms')
@@ -82,7 +108,7 @@ class KkaezamSeatMapScreen extends StatelessWidget {
                         .update({'usedSeats': FieldValue.increment(1)});
 
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$seatNumber번 좌석 예약됨')),
+                      SnackBar(content: Text('$seatNumber번 좌석 예약 완료')),
                     );
                   },
                 );
