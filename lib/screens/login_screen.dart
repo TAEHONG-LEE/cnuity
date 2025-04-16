@@ -51,15 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> adminAutoLogin() async {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: 'admin@cnuity.com', // 🔐 관리자 이메일
-        password: 'adminpassword123', // 🔐 관리자 비밀번호
+        email: 'admin@cnuity.com',
+        password: 'adminpassword123',
       );
 
       if (!context.mounted) return;
 
+      // ✅ 필요 시 아래 줄 주석 해제하여 관리자 페이지로 진입
+      // Navigator.pushReplacement(
+      //   context,
+      //   MaterialPageRoute(builder: (_) => const SeatInitializerScreen()),
+      // );
+
+      // ✅ 기본 흐름: 일반 사용자처럼 홈으로 이동
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const SeatInitializerScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } on FirebaseAuthException catch (e) {
       Fluttertoast.showToast(msg: "자동 로그인 실패: ${e.message}");

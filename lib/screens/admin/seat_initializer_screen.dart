@@ -4,30 +4,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class SeatInitializerScreen extends StatelessWidget {
   const SeatInitializerScreen({super.key});
 
-  Future<void> initSeats(String roomDocId, int totalSeats) async {
-    final seatsRef = FirebaseFirestore.instance
-        .collection('reading_rooms')
-        .doc(roomDocId)
-        .collection('seats');
+  // 각 열람실 문서에 좌석 일괄 추가
+  Future<void> initAllReadingRooms() async {
+    final firestore = FirebaseFirestore.instance;
+    final roomsRef = firestore.collection('reading_rooms');
+    final roomsSnapshot = await roomsRef.get();
 
-    for (int i = 1; i <= totalSeats; i++) {
-      await seatsRef.doc(i.toString()).set({'status': 'available'});
+    for (final doc in roomsSnapshot.docs) {
+      final docId = doc.id;
+      final data = doc.data();
+      final totalSeats = data['totalSeats'] ?? 0;
+
+      final seatsRef = roomsRef.doc(docId).collection('seats');
+
+      for (int i = 1; i <= totalSeats; i++) {
+        await seatsRef.doc(i.toString()).set({'status': 'available'});
+      }
+
+      debugPrint('✅ $docId - 좌석 $totalSeats개 생성 완료');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('좌석 초기화')),
+      appBar: AppBar(title: const Text('좌석 일괄 초기화')),
       body: Center(
         child: ElevatedButton(
           onPressed: () async {
-            await initSeats('B2-C001-C083', 83);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('초기화 완료')));
+            await initAllReadingRooms();
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('모든 열람실 좌석 생성 완료')));
+            }
           },
-          child: const Text('좌석 83개 자동 생성'),
+          child: const Text('모든 열람실 좌석 자동 생성'),
         ),
       ),
     );
