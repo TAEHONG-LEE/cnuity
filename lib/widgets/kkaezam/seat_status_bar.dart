@@ -1,47 +1,59 @@
+// lib/widgets/kkaezam/seat_status_bar.dart
+
 import 'package:flutter/material.dart';
 
 class SeatStatusBar extends StatelessWidget {
-  final String title;
-  final int used;
-  final int total;
+  final String roomName;
+  final int usedSeats;
+  final int totalSeats;
 
   const SeatStatusBar({
     super.key,
-    required this.title,
-    required this.used,
-    required this.total,
+    required this.roomName,
+    required this.usedSeats,
+    required this.totalSeats,
   });
 
   @override
   Widget build(BuildContext context) {
-    final ratio = total == 0 ? 0.0 : used / total;
-    final isAvailable = used < total;
+    final double usageRatio =
+        totalSeats == 0 ? 0 : usedSeats / totalSeats.toDouble();
+    final bool isFull = usedSeats >= totalSeats;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: ratio,
-            backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation(
-              ratio >= 0.9 ? Colors.red : Colors.green,
+          // 열람실 이름
+          Text(
+            roomName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          // 좌석 사용률 바
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: usageRatio,
+              minHeight: 12,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isFull
+                    ? Colors.red
+                    : usageRatio > 0.7
+                    ? Colors.orange
+                    : Colors.green,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
+          // 사용 중 / 전체 좌석 수 표시
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('$used', style: const TextStyle(fontSize: 16)),
-              Text('$total', style: const TextStyle(fontSize: 16)),
-              if (used == 0)
-                const Text('자유이용', style: TextStyle(color: Colors.red)),
-            ],
+            children: [Text('사용 중: $usedSeats'), Text('총 좌석: $totalSeats')],
           ),
-          const Divider(),
+          const Divider(height: 24),
         ],
       ),
     );
