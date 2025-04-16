@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/kkaezam/seat_box.dart';
 
 class KkaezamSeatMapScreen extends StatelessWidget {
-  final String roomName;
+  final String roomName; // 사용자 표시용
   final int totalSeats;
+  final String roomDocId; // Firestore 문서 ID
 
   const KkaezamSeatMapScreen({
     super.key,
     required this.roomName,
     required this.totalSeats,
+    required this.roomDocId,
   });
 
   @override
@@ -46,10 +49,16 @@ class KkaezamSeatMapScreen extends StatelessWidget {
             return SeatBox(
               number: seatNumber,
               color: seatColor(seatNumber),
-              onTap: () {
+              onTap: () async {
+                final docRef = FirebaseFirestore.instance
+                    .collection('reading_rooms')
+                    .doc(roomDocId);
+
+                await docRef.update({'usedSeats': FieldValue.increment(1)});
+
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text('$seatNumber번 좌석 선택')));
+                ).showSnackBar(SnackBar(content: Text('$seatNumber번 좌석 예약됨')));
               },
             );
           }),
