@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'signup_screen.dart'; // 회원가입 화면으로 이동
-import 'splash_screen.dart';
-import 'home/home_screen.dart'; // 홈 화면으로 이동
+import 'signup_screen.dart';
+import 'home/home_screen.dart';
+import 'admin/seat_initializer_screen.dart'; // 관리자용 화면 import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  Future<void> navigateToLoginScreen(BuildContext context) async {
+  Future<void> navigateToHome(BuildContext context) async {
     if (!context.mounted) return;
     await Future.delayed(const Duration(milliseconds: 300));
     Navigator.pushReplacement(
@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       Fluttertoast.showToast(msg: "로그인 성공");
-      await navigateToLoginScreen(context);
+      await navigateToHome(context);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         Fluttertoast.showToast(msg: "사용자를 찾을 수 없습니다.");
@@ -45,6 +45,24 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         Fluttertoast.showToast(msg: "로그인 에러: ${e.message}");
       }
+    }
+  }
+
+  Future<void> adminAutoLogin() async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: 'admin@cnuity.com', // 🔐 관리자 이메일
+        password: 'adminpassword123', // 🔐 관리자 비밀번호
+      );
+
+      if (!context.mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SeatInitializerScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      Fluttertoast.showToast(msg: "자동 로그인 실패: ${e.message}");
     }
   }
 
@@ -99,14 +117,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            // 자동으로 다음 화면으로 넘어가는 버튼
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                );
-              },
+              onPressed: adminAutoLogin,
               child: const Text(
                 '자동 로그인',
                 style: TextStyle(
