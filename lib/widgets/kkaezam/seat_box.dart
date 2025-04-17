@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 class SeatBox extends StatelessWidget {
   final int number;
   final Color color;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
+  final Widget? overlay;
 
   const SeatBox({
     super.key,
     required this.number,
     required this.color,
-    this.onTap,
+    required this.onTap,
+    this.overlay,
   });
 
   @override
@@ -17,20 +19,24 @@ class SeatBox extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          '$number',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              number.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (overlay != null) Positioned(top: 2, right: 2, child: overlay!),
+          ],
         ),
       ),
     );

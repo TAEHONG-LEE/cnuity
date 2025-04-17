@@ -74,11 +74,12 @@ class KkaezamSeatMapScreen extends StatelessWidget {
             }
           }
 
-          return SingleChildScrollView(
+          return Padding(
             padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            child: GridView.count(
+              crossAxisCount: 6,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
               children: List.generate(totalSeats, (index) {
                 final seatNumber = index + 1;
                 final status = seatMap[seatNumber] ?? 'available';
