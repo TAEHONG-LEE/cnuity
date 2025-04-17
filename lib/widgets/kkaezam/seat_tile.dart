@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'seat_box.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class SeatTile extends StatelessWidget {
   final int seatNumber;
   final Map<String, dynamic> seatData;
-  final String? currentUid;
   final String roomDocId;
 
   const SeatTile({
     super.key,
     required this.seatNumber,
     required this.seatData,
-    required this.currentUid,
     required this.roomDocId,
   });
 
@@ -40,14 +39,16 @@ class SeatTile extends StatelessWidget {
     }
   }
 
-  bool isReservedByMe(String reservedBy) => reservedBy == currentUid;
-  bool isReservedByOther(String reservedBy) =>
+  bool isReservedByMe(String reservedBy, String currentUid) =>
+      reservedBy == currentUid;
+  bool isReservedByOther(String reservedBy, String currentUid) =>
       reservedBy.isNotEmpty && reservedBy != currentUid;
 
   @override
   Widget build(BuildContext context) {
     final String status = seatData['status'] ?? 'available';
     final String reservedBy = seatData['reservedBy'] ?? '';
+    final String? currentUid = FirebaseAuth.instance.currentUser?.uid;
 
     final seatsRef = FirebaseFirestore.instance
         .collection('reading_rooms')
@@ -63,18 +64,20 @@ class SeatTile extends StatelessWidget {
       color: seatColor(status),
       onTap: () async {
         if (currentUid == null) return;
-
         final seatRef = seatsRef.doc(seatNumber.toString());
 
-        if (isReservedByOther(reservedBy) ||
-            (status != 'available' && !isReservedByMe(reservedBy))) {
+        // 다른 사람이 예약했거나, 사용할 수 없는 상태
+        if (isReservedByOther(reservedBy, currentUid) ||
+            (status != 'available' &&
+                !isReservedByMe(reservedBy, currentUid))) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$seatNumber번 좌석은 선택할 수 없습니다. 상태: $status')),
           );
           return;
         }
 
-        if (isReservedByMe(reservedBy)) {
+        // 내가 예약한 좌석이면 → 반납
+        if (isReservedByMe(reservedBy, currentUid)) {
           showDialog(
             context: context,
             builder:
@@ -107,6 +110,7 @@ class SeatTile extends StatelessWidget {
           return;
         }
 
+        // 이미 다른 좌석 예약했는지 확인
         final existing =
             await seatsRef.where('reservedBy', isEqualTo: currentUid).get();
         if (existing.docs.isNotEmpty) {
@@ -118,6 +122,7 @@ class SeatTile extends StatelessWidget {
           return;
         }
 
+        // 예약 진행
         await seatRef.update({'status': 'reserved', 'reservedBy': currentUid});
 
         await roomRef.update({'usedSeats': FieldValue.increment(1)});

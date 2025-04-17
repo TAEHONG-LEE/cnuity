@@ -32,18 +32,7 @@ class SeatInitializerScreen extends StatelessWidget {
 
       for (int i = 1; i <= totalSeats; i++) {
         final seatRef = roomRef.collection('seats').doc(i.toString());
-        final seatSnapshot = await seatRef.get();
-
-        if (!seatSnapshot.exists) {
-          await seatRef.set({
-            'status': 'available',
-            'reservedBy': '', // 문자열 타입으로 초기화
-          });
-        } else {
-          await seatRef.update({
-            'reservedBy': '', // 강제로 문자열로 갱신
-          });
-        }
+        await seatRef.set({'status': 'available', 'reservedBy': ''});
       }
     }
 
