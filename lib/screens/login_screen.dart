@@ -58,16 +58,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!context.mounted) return;
 
       // ✅ 필요 시 아래 줄 주석 해제하여 관리자 페이지로 진입
-      // Navigator.pushReplacement(
-      //   context,
-      //   MaterialPageRoute(builder: (_) => const SeatInitializerScreen()),
-      // );
-
-      // ✅ 기본 흐름: 일반 사용자처럼 홈으로 이동
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const SeatInitializerScreen()),
       );
+
+      // ✅ 기본 흐름: 일반 사용자처럼 홈으로 이동
+      // Navigator.pushReplacement(
+      //   context,
+      //   MaterialPageRoute(builder: (_) => const HomeScreen()),
+      // );
     } on FirebaseAuthException catch (e) {
       Fluttertoast.showToast(msg: "자동 로그인 실패: ${e.message}");
     }
