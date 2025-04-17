@@ -18,26 +18,28 @@ class SeatBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(
-              number.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                number.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            if (overlay != null) Positioned(top: 2, right: 2, child: overlay!),
-          ],
-        ),
+          ),
+          if (overlay != null) Positioned(top: 4, right: 4, child: overlay!),
+        ],
       ),
     );
   }

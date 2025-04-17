@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
 import 'seat_box.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
-class SeatTile extends StatelessWidget {
+class SeatTile extends StatefulWidget {
   final int seatNumber;
   final Map<String, dynamic> seatData;
   final String roomDocId;
@@ -16,7 +16,49 @@ class SeatTile extends StatelessWidget {
     required this.roomDocId,
   });
 
+  @override
+  State<SeatTile> createState() => _SeatTileState();
+}
+
+class _SeatTileState extends State<SeatTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  final List<Color> celebrationColors = [
+    Colors.red,
+    Colors.orange,
+    Colors.yellow,
+    Colors.green,
+    Colors.blue,
+    Colors.indigo,
+    Colors.purple,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Color seatColor(String status) {
+    if (status == 'woken_by_self') {
+      final double t = _controller.value * (celebrationColors.length - 1);
+      final int index = t.floor();
+      final double remain = t - index;
+      final Color start = celebrationColors[index % celebrationColors.length];
+      final Color end =
+          celebrationColors[(index + 1) % celebrationColors.length];
+      return Color.lerp(start, end, remain) ?? Colors.lightGreen;
+    }
     switch (status) {
       case 'available':
         return Colors.green;
@@ -26,8 +68,6 @@ class SeatTile extends StatelessWidget {
         return Colors.blue;
       case 'wake_waiting':
         return Colors.amber;
-      case 'woken_by_self':
-        return Colors.lightGreen;
       case 'woken_by_other':
         return Colors.deepPurple;
       case 'done':
@@ -39,6 +79,25 @@ class SeatTile extends StatelessWidget {
     }
   }
 
+  Widget? statusOverlay(String status) {
+    switch (status) {
+      case 'sleeping':
+        return const Icon(Icons.bed, color: Colors.white, size: 16);
+      case 'wake_waiting':
+        return const Icon(Icons.alarm, color: Colors.white, size: 16);
+      case 'woken_by_other':
+        return const Icon(Icons.notifications, color: Colors.white, size: 16);
+      case 'woken_by_self':
+        return const Icon(
+          Icons.local_fire_department,
+          color: Colors.redAccent,
+          size: 18,
+        );
+      default:
+        return null;
+    }
+  }
+
   bool isReservedByMe(String reservedBy, String currentUid) =>
       reservedBy == currentUid;
   bool isReservedByOther(String reservedBy, String currentUid) =>
@@ -46,90 +105,113 @@ class SeatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String status = seatData['status'] ?? 'available';
-    final String reservedBy = seatData['reservedBy'] ?? '';
+    final String status = widget.seatData['status'] ?? 'available';
+    final String reservedBy = widget.seatData['reservedBy'] ?? '';
     final String? currentUid = FirebaseAuth.instance.currentUser?.uid;
 
     final seatsRef = FirebaseFirestore.instance
         .collection('reading_rooms')
-        .doc(roomDocId)
+        .doc(widget.roomDocId)
         .collection('seats');
 
     final roomRef = FirebaseFirestore.instance
         .collection('reading_rooms')
-        .doc(roomDocId);
+        .doc(widget.roomDocId);
 
-    return SeatBox(
-      number: seatNumber,
-      color: seatColor(status),
-      onTap: () async {
-        if (currentUid == null) return;
-        final seatRef = seatsRef.doc(seatNumber.toString());
+    final scale =
+        status == 'wake_waiting'
+            ? 1 + 0.1 * sin(_controller.value * 2 * pi)
+            : 1.0;
 
-        // 다른 사람이 예약했거나, 사용할 수 없는 상태
-        if (isReservedByOther(reservedBy, currentUid) ||
-            (status != 'available' &&
-                !isReservedByMe(reservedBy, currentUid))) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$seatNumber번 좌석은 선택할 수 없습니다. 상태: $status')),
-          );
-          return;
-        }
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: scale,
+          child: SeatBox(
+            number: widget.seatNumber,
+            color: seatColor(status),
+            overlay: statusOverlay(status),
+            onTap: () async {
+              if (currentUid == null) return;
+              final seatRef = seatsRef.doc(widget.seatNumber.toString());
 
-        // 내가 예약한 좌석이면 → 반납
-        if (isReservedByMe(reservedBy, currentUid)) {
-          showDialog(
-            context: context,
-            builder:
-                (_) => AlertDialog(
-                  title: Text('$seatNumber번 좌석 반납할까요?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('취소'),
+              if (isReservedByOther(reservedBy, currentUid) ||
+                  (status != 'available' &&
+                      !isReservedByMe(reservedBy, currentUid))) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${widget.seatNumber}번 좌석은 선택할 수 없습니다. 상태: $status',
                     ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await seatRef.update({
-                          'status': 'available',
-                          'reservedBy': '',
-                        });
-                        await roomRef.update({
-                          'usedSeats': FieldValue.increment(-1),
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$seatNumber번 좌석 반납 완료')),
-                        );
-                      },
-                      child: const Text('반납'),
-                    ),
-                  ],
-                ),
-          );
-          return;
-        }
+                  ),
+                );
+                return;
+              }
 
-        // 이미 다른 좌석 예약했는지 확인
-        final existing =
-            await seatsRef.where('reservedBy', isEqualTo: currentUid).get();
-        if (existing.docs.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('이미 예약한 좌석이 있습니다. 하나의 좌석만 선택할 수 있습니다.'),
-            ),
-          );
-          return;
-        }
+              if (isReservedByMe(reservedBy, currentUid)) {
+                showDialog(
+                  context: context,
+                  builder:
+                      (_) => AlertDialog(
+                        title: Text('${widget.seatNumber}번 좌석 반납할까요?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              await seatRef.update({
+                                'status': 'available',
+                                'reservedBy': '',
+                              });
+                              await roomRef.update({
+                                'usedSeats': FieldValue.increment(-1),
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${widget.seatNumber}번 좌석 반납 완료',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text('반납'),
+                          ),
+                        ],
+                      ),
+                );
+                return;
+              }
 
-        // 예약 진행
-        await seatRef.update({'status': 'reserved', 'reservedBy': currentUid});
+              final existing =
+                  await seatsRef
+                      .where('reservedBy', isEqualTo: currentUid)
+                      .get();
+              if (existing.docs.isNotEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('이미 예약한 좌석이 있습니다. 하나의 좌석만 선택할 수 있습니다.'),
+                  ),
+                );
+                return;
+              }
 
-        await roomRef.update({'usedSeats': FieldValue.increment(1)});
+              await seatRef.update({
+                'status': 'reserved',
+                'reservedBy': currentUid,
+              });
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$seatNumber번 좌석 예약 완료')));
+              await roomRef.update({'usedSeats': FieldValue.increment(1)});
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('${widget.seatNumber}번 좌석 예약 완료')),
+              );
+            },
+          ),
+        );
       },
     );
   }
