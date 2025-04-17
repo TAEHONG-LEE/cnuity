@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/common/service_square_button.dart';
 import 'kkaezam_seat_select_screen.dart';
+import 'kkaezam_sleep_timer_screen.dart';
 
 class KkaezamHomeScreen extends StatelessWidget {
   KkaezamHomeScreen({super.key});
@@ -79,8 +80,30 @@ class KkaezamHomeScreen extends StatelessWidget {
             ServiceSquareButton(
               label: '잠자기',
               icon: Icons.bed,
-              onTap: () {
-                // TODO: 타이머 실행 페이지로 이동
+              onTap: () async {
+                final currentUid = FirebaseAuth.instance.currentUser?.uid;
+                if (currentUid == null) return;
+
+                final snapshot =
+                    await FirebaseFirestore.instance
+                        .collectionGroup('seats')
+                        .where('reservedBy', isEqualTo: currentUid)
+                        .where('status', isEqualTo: 'reserved')
+                        .get();
+
+                if (snapshot.docs.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('좌석을 먼저 예약해주세요.')),
+                  );
+                  return;
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const KkaezamSleepTimerScreen(),
+                  ),
+                );
               },
             ),
             // 나의 기록
