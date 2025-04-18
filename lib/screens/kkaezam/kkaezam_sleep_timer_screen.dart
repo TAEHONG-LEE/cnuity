@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class KkaezamSleepTimerScreen extends StatefulWidget {
   const KkaezamSleepTimerScreen({super.key});
@@ -13,11 +15,37 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen> {
   static const int totalTime = 30 * 60; // 30분 (초 단위)
   int remainingTime = totalTime;
   Timer? timer;
+  bool alreadySleeping = false;
 
   @override
   void initState() {
     super.initState();
     startTimer();
+    markSeatAsSleeping();
+  }
+
+  Future<void> markSeatAsSleeping() async {
+    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collectionGroup('seats')
+            .where('reservedBy', isEqualTo: uid)
+            .where('status', whereIn: ['reserved', 'sleeping'])
+            .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final seatDoc = snapshot.docs.first;
+
+      // 이미 sleeping이면 다시 update하지 않음
+      if (seatDoc['status'] == 'sleeping') {
+        alreadySleeping = true;
+        return;
+      }
+
+      await seatDoc.reference.update({'status': 'sleeping'});
+    }
   }
 
   void startTimer() {

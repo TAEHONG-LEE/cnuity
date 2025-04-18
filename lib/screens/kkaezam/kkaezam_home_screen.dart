@@ -88,7 +88,7 @@ class KkaezamHomeScreen extends StatelessWidget {
                     await FirebaseFirestore.instance
                         .collectionGroup('seats')
                         .where('reservedBy', isEqualTo: currentUid)
-                        .where('status', isEqualTo: 'reserved')
+                        .where('status', whereIn: ['reserved', 'sleeping'])
                         .get();
 
                 if (snapshot.docs.isEmpty) {
