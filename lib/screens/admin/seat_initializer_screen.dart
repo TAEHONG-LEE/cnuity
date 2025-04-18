@@ -37,7 +37,7 @@ class SeatInitializerScreen extends StatelessWidget {
           'reservedBy': '',
           'seatId': i.toString(),
           'roomDocId': docId,
-          'sleepStart': null,
+          'sleepStart': Timestamp(0, 0),
           'sleepDuration': 0,
           'wokeBy': '',
           'result': '',
@@ -45,9 +45,9 @@ class SeatInitializerScreen extends StatelessWidget {
           'pointsGiven': 0,
           'pointsRewardedToOther': 0,
           'isCompleted': false,
-          'wakeTime': null,
+          'wakeTime': Timestamp(0, 0),
           'wasWokenByOther': false,
-        }, SetOptions(merge: true)); // 병합 옵션 추가
+        }, SetOptions(merge: true));
       }
     }
 
