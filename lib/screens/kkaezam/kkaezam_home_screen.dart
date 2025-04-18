@@ -88,7 +88,10 @@ class KkaezamHomeScreen extends StatelessWidget {
                     await FirebaseFirestore.instance
                         .collectionGroup('seats')
                         .where('reservedBy', isEqualTo: currentUid)
-                        .where('status', whereIn: ['reserved', 'sleeping'])
+                        .where(
+                          'status',
+                          whereIn: ['reserved', 'sleeping', 'woken_by_self'],
+                        ) // 🔽 수정
                         .get();
 
                 if (snapshot.docs.isEmpty) {
@@ -101,7 +104,7 @@ class KkaezamHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => KkaezamSleepTimerScreen(), // const 제거
+                    builder: (_) => const KkaezamSleepTimerScreen(),
                   ),
                 );
               },
