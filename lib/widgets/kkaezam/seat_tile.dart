@@ -166,6 +166,16 @@ class _SeatTileState extends State<SeatTile>
                               await seatRef.update({
                                 'status': 'available',
                                 'reservedBy': '',
+                                'sleepStart': null,
+                                'sleepDuration': 0,
+                                'sleepSessionId': '',
+                                'result': '',
+                                'wokeBy': '',
+                                'wakeTime': null,
+                                'wasWokenByOther': false,
+                                'pointsGiven': 0,
+                                'pointsRewardedToOther': 0,
+                                'isCompleted': false,
                               });
                               await roomRef.update({
                                 'usedSeats': FieldValue.increment(-1),
@@ -202,6 +212,16 @@ class _SeatTileState extends State<SeatTile>
               await seatRef.update({
                 'status': 'reserved',
                 'reservedBy': currentUid,
+                'sleepStart': null,
+                'sleepDuration': 0,
+                'sleepSessionId': '',
+                'result': '',
+                'wokeBy': '',
+                'wakeTime': null,
+                'wasWokenByOther': false,
+                'pointsGiven': 0,
+                'pointsRewardedToOther': 0,
+                'isCompleted': false,
               });
 
               await roomRef.update({'usedSeats': FieldValue.increment(1)});

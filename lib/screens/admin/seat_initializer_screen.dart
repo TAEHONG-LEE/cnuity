@@ -32,7 +32,22 @@ class SeatInitializerScreen extends StatelessWidget {
 
       for (int i = 1; i <= totalSeats; i++) {
         final seatRef = roomRef.collection('seats').doc(i.toString());
-        await seatRef.set({'status': 'available', 'reservedBy': ''});
+        await seatRef.set({
+          'status': 'available',
+          'reservedBy': '',
+          'seatId': i.toString(),
+          'roomDocId': docId,
+          'sleepStart': null,
+          'sleepDuration': 0,
+          'wokeBy': '',
+          'result': '',
+          'sleepSessionId': '',
+          'pointsGiven': 0,
+          'pointsRewardedToOther': 0,
+          'isCompleted': false,
+          'wakeTime': null,
+          'wasWokenByOther': false,
+        }, SetOptions(merge: true)); // 병합 옵션 추가
       }
     }
 

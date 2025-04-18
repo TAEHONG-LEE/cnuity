@@ -12,16 +12,15 @@ class KkaezamSleepTimerScreen extends StatefulWidget {
 }
 
 class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen> {
-  static const int totalTime = 30 * 60; // 30분 (초 단위)
-  int remainingTime = totalTime;
+  int sleepDuration = 30 * 60; // 기본 30분 (초)
+  int elapsedTime = 0;
   Timer? timer;
-  bool alreadySleeping = false;
+  bool isSleeping = false;
 
   @override
-  void initState() {
-    super.initState();
-    startTimer();
-    markSeatAsSleeping();
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
   }
 
   Future<void> markSeatAsSleeping() async {
@@ -37,47 +36,37 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen> {
 
     if (snapshot.docs.isNotEmpty) {
       final seatDoc = snapshot.docs.first;
-
-      // 이미 sleeping이면 다시 update하지 않음
-      if (seatDoc['status'] == 'sleeping') {
-        alreadySleeping = true;
-        return;
+      if (seatDoc['status'] != 'sleeping') {
+        await seatDoc.reference.update({'status': 'sleeping'});
       }
-
-      await seatDoc.reference.update({'status': 'sleeping'});
     }
   }
 
-  void startTimer() {
+  void startSleep() async {
+    await markSeatAsSleeping();
+    setState(() {
+      isSleeping = true;
+    });
     timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (remainingTime <= 0) {
-        t.cancel();
-        onTimerComplete();
-      } else {
-        setState(() {
-          remainingTime--;
-        });
-      }
+      setState(() {
+        elapsedTime++;
+      });
     });
   }
 
-  void onTimerComplete() {
-    // TODO: 타이머 완료 후 Firestore에 상태 업데이트 & 결과 화면 이동
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('타이머가 완료되었습니다!')));
+  String formatTimer() {
+    final delta = sleepDuration - elapsedTime;
+    final sign = delta < 0 ? '+' : '-';
+    final abs = delta.abs();
+    final m = abs ~/ 60;
+    final s = abs % 60;
+    return '$sign${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
-  }
-
-  String formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  void adjustSleepTime(int deltaMinutes) {
+    setState(() {
+      sleepDuration = (sleepDuration + deltaMinutes * 60).clamp(60, 120 * 60);
+    });
   }
 
   @override
@@ -87,20 +76,55 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen> {
         title: const Text('잠자기 타이머'),
         backgroundColor: const Color(0xFF5197FF),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              '남은 시간',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              formatTime(remainingTime),
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-            ),
-          ],
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (!isSleeping) ...[
+                const Text('얼마나 잘까요?', style: TextStyle(fontSize: 24)),
+                const SizedBox(height: 16),
+                Text(
+                  '${sleepDuration ~/ 60}분',
+                  style: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => adjustSleepTime(-10),
+                      child: const Text('-10분'),
+                    ),
+                    const SizedBox(width: 20),
+                    ElevatedButton(
+                      onPressed: () => adjustSleepTime(10),
+                      child: const Text('+10분'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: startSleep,
+                  child: const Text('잠자기 시작'),
+                ),
+              ] else ...[
+                const Text('현재 상태', style: TextStyle(fontSize: 24)),
+                const SizedBox(height: 20),
+                Text(
+                  formatTimer(),
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

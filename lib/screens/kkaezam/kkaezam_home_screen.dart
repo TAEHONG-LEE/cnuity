@@ -101,11 +101,12 @@ class KkaezamHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const KkaezamSleepTimerScreen(),
+                    builder: (_) => KkaezamSleepTimerScreen(), // const 제거
                   ),
                 );
               },
             ),
+
             // 나의 기록
             ServiceSquareButton(
               label: '나의 기록',
