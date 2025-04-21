@@ -22,13 +22,13 @@ class UserInitializerScreen extends StatelessWidget {
         'email': user['email'],
         'nickname': user['nickname'],
         'point': 50, // 초기 포인트
-        'totalSleepTime': 0,
-        'totalSessions': 0,
-        'selfWakeCount': 0,
-        'forcedWakeCount': 0,
-        'lastSessionId': '',
+        'totalSleepTime': 0, // 총 수면 시간 (초)
+        'totalSessions': 0, // 총 세션 수
+        'selfWakeCount': 0, // 스스로 기상한 횟수
+        'forcedWakeCount': 0, // 타인에 의해 기상된 횟수
+        'lastSessionId': '', // 마지막 세션 ID
         'createdAt': FieldValue.serverTimestamp(),
-        'isAdmin': false,
+        'isAdmin': false, // 관리자 여부
       }, SetOptions(merge: true));
     }
 
