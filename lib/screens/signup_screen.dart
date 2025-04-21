@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'login_screen.dart'; // 로그인 화면으로 이동
+import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,31 +14,36 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController nicknameController =
+      TextEditingController(); // 🔹 닉네임 입력 추가
+
   bool _isProcessing = false;
 
-  // ✅ 화면 이동 메서드 분리
   Future<void> navigateToLoginScreen(BuildContext context) async {
     if (!context.mounted) return;
-
     await Future.delayed(const Duration(milliseconds: 300));
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
-  // 회원가입
   Future<bool> register() async {
     if (_isProcessing) return false;
-
     setState(() => _isProcessing = true);
 
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
+    String nickname = nicknameController.text.trim();
 
     if (password.length < 6) {
       Fluttertoast.showToast(msg: "비밀번호는 최소 6자 이상이어야 합니다.");
+      setState(() => _isProcessing = false);
+      return false;
+    }
+
+    if (nickname.isEmpty) {
+      Fluttertoast.showToast(msg: "닉네임을 입력해주세요.");
       setState(() => _isProcessing = false);
       return false;
     }
@@ -49,6 +55,23 @@ class _SignupScreenState extends State<SignupScreen> {
       final User? user = credential.user;
 
       if (user != null) {
+        // ✅ Firestore에 유저 정보 저장
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'nickname': nickname,
+          'point': 50,
+          'totalSleepTime': 0,
+          'totalSessions': 0,
+          'selfWakeCount': 0,
+          'forcedWakeCount': 0,
+          'lastSessionId': '',
+          'totalEarnedPoints': 0,
+          'totalUsedPoints': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isAdmin': false,
+        });
+
         Fluttertoast.showToast(msg: "회원가입 성공");
         await navigateToLoginScreen(context);
         return true;
@@ -89,6 +112,11 @@ class _SignupScreenState extends State<SignupScreen> {
               controller: passwordController,
               obscureText: true,
               decoration: const InputDecoration(labelText: '비밀번호를 입력하세요'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nicknameController,
+              decoration: const InputDecoration(labelText: '닉네임을 입력하세요'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

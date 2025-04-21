@@ -1,9 +1,10 @@
-// lib/screens/kkaezam/kkaezam_sleep_timer_screen.dart
+// screens/kkaezam/kkaezam_sleep_timer_screen.dart
+
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/kkaezam/wake_up_button.dart';
 
 class KkaezamSleepTimerScreen extends StatefulWidget {
   const KkaezamSleepTimerScreen({super.key});
@@ -13,34 +14,26 @@ class KkaezamSleepTimerScreen extends StatefulWidget {
       _KkaezamSleepTimerScreenState();
 }
 
-class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
-    with SingleTickerProviderStateMixin {
-  int sleepDuration = 30 * 60; // 기본 30분 (초)
+class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen> {
+  int sleepDuration = 30 * 60;
   int elapsedTime = 0;
   Timer? timer;
   bool isSleeping = false;
-  bool hasWokenUp = false;
-  late AnimationController _confettiController;
 
   @override
   void initState() {
     super.initState();
-    _confettiController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
     _checkExistingSleepStatus();
   }
 
   Future<void> _checkExistingSleepStatus() async {
-    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     final snapshot =
         await FirebaseFirestore.instance
             .collectionGroup('seats')
             .where('reservedBy', isEqualTo: uid)
-            .where('status', whereIn: ['sleeping', 'woken_by_self'])
             .limit(1)
             .get();
 
@@ -48,24 +41,21 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
       final doc = snapshot.docs.first;
       final data = doc.data();
 
-      final Timestamp? start = data['sleepStart'];
-      final int duration = data['sleepDuration'];
+      if (data['status'] == 'sleeping') {
+        final Timestamp start = data['sleepStart'];
+        final int duration = data['sleepDuration'];
+        final int elapsed = DateTime.now()
+            .difference(start.toDate())
+            .inSeconds
+            .clamp(0, duration * 2);
 
-      final int elapsed =
-          start == null
-              ? 0
-              : DateTime.now()
-                  .difference(start.toDate())
-                  .inSeconds
-                  .clamp(0, duration * 2);
-
-      setState(() {
-        isSleeping = true;
-        sleepDuration = duration;
-        elapsedTime = elapsed;
-        hasWokenUp = data['status'] == 'woken_by_self';
-      });
-      _startTimer();
+        setState(() {
+          isSleeping = true;
+          sleepDuration = duration;
+          elapsedTime = elapsed;
+        });
+        _startTimer();
+      }
     }
   }
 
@@ -78,7 +68,7 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
   }
 
   Future<void> _startSleep() async {
-    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     final snapshot =
@@ -104,31 +94,6 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
     _startTimer();
   }
 
-  Future<void> _wakeUp() async {
-    final String? uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collectionGroup('seats')
-            .where('reservedBy', isEqualTo: uid)
-            .limit(1)
-            .get();
-
-    if (snapshot.docs.isNotEmpty) {
-      final doc = snapshot.docs.first;
-      await doc.reference.update({
-        'status': 'woken_by_self',
-        'wakeTime': Timestamp.now(),
-      });
-    }
-
-    setState(() {
-      hasWokenUp = true;
-    });
-    _confettiController.forward(from: 0);
-  }
-
   String _formatTimer() {
     final delta = sleepDuration - elapsedTime;
     final sign = delta < 0 ? '+' : '-';
@@ -140,19 +105,20 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
 
   void _adjustSleepTime(int deltaMinutes) {
     setState(() {
-      sleepDuration = (sleepDuration + deltaMinutes * 60).clamp(60, 120 * 60);
+      sleepDuration = (sleepDuration + deltaMinutes * 60).clamp(60, 7200);
     });
   }
 
   @override
   void dispose() {
     timer?.cancel();
-    _confettiController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool canWakeUp = isSleeping && elapsedTime >= sleepDuration;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('잠자기 타이머'),
@@ -204,35 +170,13 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 30),
-                if (!hasWokenUp)
-                  ElevatedButton(onPressed: _wakeUp, child: const Text('일어나기')),
-                if (hasWokenUp)
-                  Column(
-                    children: [
-                      const Text(
-                        '잘 일어나셨어요! 🎉',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      AnimatedBuilder(
-                        animation: _confettiController,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: _confettiController.value * 2 * pi,
-                            child: const Icon(
-                              Icons.celebration,
-                              color: Colors.amber,
-                              size: 64,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                const SizedBox(height: 20),
+                if (canWakeUp)
+                  WakeUpButton(
+                    onComplete: () {
+                      // 예: 효과 애니메이션 보여주기 등 추가 가능
+                      Navigator.pop(context);
+                    },
                   ),
               ],
             ],
