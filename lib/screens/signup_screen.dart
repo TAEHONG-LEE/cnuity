@@ -55,21 +55,24 @@ class _SignupScreenState extends State<SignupScreen> {
       final User? user = credential.user;
 
       if (user != null) {
-        // ✅ Firestore에 유저 정보 저장
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        // Firestore에 유저 정보 저장
+        final userDoc = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid);
+        await userDoc.set({
           'uid': user.uid,
           'email': email,
-          'nickname': nickname,
+          'nickname': nicknameController.text.trim(),
           'point': 50,
           'totalSleepTime': 0,
           'totalSessions': 0,
           'selfWakeCount': 0,
           'forcedWakeCount': 0,
           'lastSessionId': '',
-          'totalEarnedPoints': 0,
-          'totalUsedPoints': 0,
           'createdAt': FieldValue.serverTimestamp(),
           'isAdmin': false,
+          'totalEarnedPoints': 0,
+          'totalUsedPoints': 0,
         });
 
         Fluttertoast.showToast(msg: "회원가입 성공");
