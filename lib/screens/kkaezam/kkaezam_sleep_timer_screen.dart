@@ -40,6 +40,7 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
         await FirebaseFirestore.instance
             .collectionGroup('seats')
             .where('reservedBy', isEqualTo: uid)
+            .where('status', whereIn: ['sleeping', 'woken_by_self'])
             .limit(1)
             .get();
 
@@ -47,20 +48,24 @@ class _KkaezamSleepTimerScreenState extends State<KkaezamSleepTimerScreen>
       final doc = snapshot.docs.first;
       final data = doc.data();
 
-      if (data['status'] == 'sleeping') {
-        final Timestamp start = data['sleepStart'];
-        final int duration = data['sleepDuration'];
-        final int elapsed = DateTime.now()
-            .difference(start.toDate())
-            .inSeconds
-            .clamp(0, duration * 2);
-        setState(() {
-          isSleeping = true;
-          sleepDuration = duration;
-          elapsedTime = elapsed;
-        });
-        _startTimer();
-      }
+      final Timestamp? start = data['sleepStart'];
+      final int duration = data['sleepDuration'];
+
+      final int elapsed =
+          start == null
+              ? 0
+              : DateTime.now()
+                  .difference(start.toDate())
+                  .inSeconds
+                  .clamp(0, duration * 2);
+
+      setState(() {
+        isSleeping = true;
+        sleepDuration = duration;
+        elapsedTime = elapsed;
+        hasWokenUp = data['status'] == 'woken_by_self';
+      });
+      _startTimer();
     }
   }
 

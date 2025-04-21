@@ -1,3 +1,4 @@
+import 'package:cnuity/screens/admin/admin_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -57,10 +58,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!context.mounted) return;
 
-      // ✅ 필요 시 아래 줄 주석 해제하여 관리자 페이지로 진입
+      // // ✅ 필요 시 아래 줄 주석 해제하여 관리자 페이지로 진입
       // Navigator.pushReplacement(
       //   context,
-      //   MaterialPageRoute(builder: (_) => const SeatInitializerScreen()),
+      //   MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
       // );
 
       // ✅ 기본 흐름: 일반 사용자처럼 홈으로 이동
