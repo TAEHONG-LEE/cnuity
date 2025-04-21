@@ -26,28 +26,66 @@ class _WakeUpButtonState extends State<WakeUpButton> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot =
+    final seatSnapshot =
         await FirebaseFirestore.instance
             .collectionGroup('seats')
             .where('reservedBy', isEqualTo: uid)
+            .where('status', isEqualTo: 'sleeping')
             .limit(1)
             .get();
 
-    if (snapshot.docs.isNotEmpty) {
-      final seatDoc = snapshot.docs.first;
+    if (seatSnapshot.docs.isNotEmpty) {
+      final seatDoc = seatSnapshot.docs.first;
       final seatRef = seatDoc.reference;
+      final seatData = seatDoc.data();
+      final String seatId = seatData['seatId'] ?? seatDoc.id;
+      final String roomDocId = seatData['roomDocId'] ?? 'unknown';
+      final Timestamp startTime = seatData['sleepStart'];
+      final int sleepDuration = seatData['sleepDuration'];
 
+      final Timestamp endTime = Timestamp.now();
+      final int actualDuration =
+          endTime.toDate().difference(startTime.toDate()).inSeconds;
+
+      final int pointsToRestore = sleepDuration ~/ 60;
+
+      // 1. 좌석 상태 업데이트
       await seatRef.update({
         'status': 'woken_by_self',
-        'wakeTime': Timestamp.now(),
+        'wakeTime': endTime,
         'wasWokenByOther': false,
         'isCompleted': true,
       });
 
-      // 빵빠레 시작
-      _confettiController.play();
+      // 2. 유저 sleep_sessions 기록 추가
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final sessionRef = userRef.collection('sleep_sessions').doc();
 
-      // 2초 대기 후 onComplete 호출
+      await sessionRef.set({
+        'sessionId': sessionRef.id,
+        'seatId': seatId,
+        'roomDocId': roomDocId,
+        'startTime': startTime,
+        'endTime': endTime,
+        'sleepDuration': sleepDuration,
+        'actualDuration': actualDuration,
+        'result': '스스로 기상',
+        'pointsGiven': pointsToRestore,
+        'pointsRewardedToOther': 0,
+      });
+
+      // 3. 유저 요약 정보 업데이트
+      await userRef.update({
+        'point': FieldValue.increment(pointsToRestore),
+        'totalEarnedPoints': FieldValue.increment(pointsToRestore),
+        'totalSleepTime': FieldValue.increment(actualDuration),
+        'totalSessions': FieldValue.increment(1),
+        'selfWakeCount': FieldValue.increment(1),
+        'lastSessionId': sessionRef.id,
+      });
+
+      // 4. 빵빠레 실행
+      _confettiController.play();
       await Future.delayed(const Duration(seconds: 3));
       widget.onComplete();
     }

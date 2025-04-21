@@ -68,6 +68,10 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    final userSnapshot = await userRef.get();
+    final int currentPoint = userSnapshot['point'] ?? 0;
+
     final snapshot =
         await FirebaseFirestore.instance
             .collectionGroup('seats')
@@ -76,19 +80,35 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
             .get();
 
     if (snapshot.docs.isNotEmpty) {
-      final doc = snapshot.docs.first;
-      await doc.reference.update({
+      final seatDoc = snapshot.docs.first;
+      final seatRef = seatDoc.reference;
+
+      final int requiredPoints = (sleepDuration / 60).ceil(); // 1분당 1포인트
+
+      if (currentPoint < requiredPoints) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('포인트가 부족합니다. (${requiredPoints}P 필요)')),
+        );
+        return;
+      }
+
+      await seatRef.update({
         'status': 'sleeping',
         'sleepStart': Timestamp.now(),
         'sleepDuration': sleepDuration,
       });
-    }
 
-    setState(() {
-      isSleeping = true;
-      elapsedTime = 0;
-    });
-    _startTimer();
+      await userRef.update({
+        'point': currentPoint - requiredPoints,
+        'totalUsedPoints': FieldValue.increment(requiredPoints),
+      });
+
+      setState(() {
+        isSleeping = true;
+        elapsedTime = 0;
+      });
+      _startTimer();
+    }
   }
 
   String _formatTimer() {
