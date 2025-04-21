@@ -1,97 +1,89 @@
-// lib/widgets/kkaezam/wake_up_button.dart
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class WakeUpButton extends StatelessWidget {
-  final VoidCallback? onComplete;
+class WakeUpButton extends StatefulWidget {
+  final VoidCallback onComplete;
 
-  const WakeUpButton({super.key, this.onComplete});
+  const WakeUpButton({super.key, required this.onComplete});
 
-  Future<void> _handleWakeUp(BuildContext context) async {
+  @override
+  State<WakeUpButton> createState() => _WakeUpButtonState();
+}
+
+class _WakeUpButtonState extends State<WakeUpButton> {
+  final ConfettiController _confettiController = ConfettiController(
+    duration: const Duration(seconds: 2),
+  );
+
+  bool _isProcessing = false;
+
+  Future<void> _handleWakeUp() async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final seatsSnapshot =
+    final snapshot =
         await FirebaseFirestore.instance
             .collectionGroup('seats')
             .where('reservedBy', isEqualTo: uid)
-            .where('status', isEqualTo: 'sleeping')
             .limit(1)
             .get();
 
-    if (seatsSnapshot.docs.isEmpty) return;
+    if (snapshot.docs.isNotEmpty) {
+      final seatDoc = snapshot.docs.first;
+      final seatRef = seatDoc.reference;
 
-    final seatDoc = seatsSnapshot.docs.first;
-    final seatRef = seatDoc.reference;
-    final seatData = seatDoc.data();
+      await seatRef.update({
+        'status': 'woken_by_self',
+        'wakeTime': Timestamp.now(),
+        'wasWokenByOther': false,
+        'isCompleted': true,
+      });
 
-    final startTime = (seatData['sleepStart'] as Timestamp).toDate();
-    final endTime = DateTime.now();
-    final duration = endTime.difference(startTime).inSeconds;
-    final sleepDuration = seatData['sleepDuration'] ?? 0;
+      // 빵빠레 시작
+      _confettiController.play();
 
-    // Firestore 업데이트
-    await seatRef.update({
-      'status': 'woken_by_self',
-      'wakeTime': Timestamp.fromDate(endTime),
-      'isCompleted': true,
-      'wasWokenByOther': false,
-    });
+      // 2초 대기 후 onComplete 호출
+      await Future.delayed(const Duration(seconds: 3));
+      widget.onComplete();
+    }
 
-    // 세션 저장
-    final sessionId =
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('sleep_sessions')
-            .doc()
-            .id;
+    setState(() => _isProcessing = false);
+  }
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('sleep_sessions')
-        .doc(sessionId)
-        .set({
-          'sessionId': sessionId,
-          'seatId': seatData['seatId'],
-          'startTime': seatData['sleepStart'],
-          'endTime': Timestamp.fromDate(endTime),
-          'sleepDuration': sleepDuration,
-          'result': '스스로 기상',
-          'pointsGiven': 5,
-          'pointsRewardedToOther': 0,
-          'wokeBy': uid,
-        });
-
-    // 유저 포인트 반영
-    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-    await userRef.update({
-      'point': FieldValue.increment(5),
-      'totalSleepTime': FieldValue.increment(duration),
-      'totalSessions': FieldValue.increment(1),
-      'selfWakeCount': FieldValue.increment(1),
-      'lastSessionId': sessionId,
-      'totalEarnedPoints': FieldValue.increment(5),
-    });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('잘 일어나셨습니다! +5P')));
-
-    onComplete?.call();
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => _handleWakeUp(context),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      ),
-      child: const Text('일어나기'),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        ElevatedButton.icon(
+          onPressed: _isProcessing ? null : _handleWakeUp,
+          icon: const Icon(Icons.sunny),
+          label: const Text('일어나기'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+        ),
+        ConfettiWidget(
+          confettiController: _confettiController,
+          blastDirectionality: BlastDirectionality.explosive,
+          shouldLoop: false,
+          numberOfParticles: 20,
+          emissionFrequency: 0.05,
+          gravity: 0.2,
+        ),
+      ],
     );
   }
 }
