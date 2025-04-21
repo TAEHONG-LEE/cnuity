@@ -8,7 +8,13 @@ class UserInitializerScreen extends StatelessWidget {
     final firestore = FirebaseFirestore.instance;
 
     // 임시로 초기화할 유저 리스트
-    final usersToCreate = [
+    final List<Map<String, dynamic>> usersToCreate = [
+      {
+        'uid': 'KtoOowYedNPXRKP2835ug7BHVp02',
+        'email': 'admin@cnuity.com',
+        'nickname': '관리자',
+        'isAdmin': true,
+      },
       {'uid': 'user1', 'email': 'user1@example.com', 'nickname': '유저1'},
       {'uid': 'user2', 'email': 'user2@example.com', 'nickname': '유저2'},
       {'uid': 'user3', 'email': 'user3@example.com', 'nickname': '유저3'},
@@ -21,14 +27,16 @@ class UserInitializerScreen extends StatelessWidget {
         'uid': user['uid'],
         'email': user['email'],
         'nickname': user['nickname'],
-        'point': 50, // 초기 포인트
-        'totalSleepTime': 0, // 총 수면 시간 (초)
-        'totalSessions': 0, // 총 세션 수
-        'selfWakeCount': 0, // 스스로 기상한 횟수
-        'forcedWakeCount': 0, // 타인에 의해 기상된 횟수
-        'lastSessionId': '', // 마지막 세션 ID
+        'point': 50,
+        'totalSleepTime': 0,
+        'totalSessions': 0,
+        'selfWakeCount': 0,
+        'forcedWakeCount': 0,
+        'lastSessionId': '',
         'createdAt': FieldValue.serverTimestamp(),
-        'isAdmin': false, // 관리자 여부
+        'isAdmin': user['isAdmin'] ?? false,
+        'totalEarnedPoints': 0,
+        'totalUsedPoints': 0,
       }, SetOptions(merge: true));
     }
 
