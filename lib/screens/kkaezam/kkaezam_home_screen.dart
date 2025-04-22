@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../widgets/common/service_square_button.dart';
 import 'kkaezam_seat_select_screen.dart';
 import 'kkaezam_sleep_timer_screen.dart';
+import 'qr/wake_target_list_screen.dart'; // ✅ 추가
 
 class KkaezamHomeScreen extends StatelessWidget {
   KkaezamHomeScreen({super.key});
@@ -28,7 +30,6 @@ class KkaezamHomeScreen extends StatelessWidget {
         final seatRef = seatDoc.reference;
 
         await seatRef.update({'status': 'available', 'reservedBy': ''});
-
         await roomDoc.reference.update({'usedSeats': FieldValue.increment(-1)});
 
         ScaffoldMessenger.of(
@@ -73,7 +74,7 @@ class KkaezamHomeScreen extends StatelessWidget {
               label: '미션',
               icon: Icons.flag,
               onTap: () {
-                // TODO: 미션 페이지로 이동
+                // TODO: 미션 페이지 연결 예정
               },
             ),
             // 잠자기
@@ -91,7 +92,7 @@ class KkaezamHomeScreen extends StatelessWidget {
                         .where(
                           'status',
                           whereIn: ['reserved', 'sleeping', 'woken_by_self'],
-                        ) // 🔽 수정
+                        )
                         .get();
 
                 if (snapshot.docs.isEmpty) {
@@ -109,13 +110,25 @@ class KkaezamHomeScreen extends StatelessWidget {
                 );
               },
             ),
-
+            // 깨우기 → 기상 대상자 리스트로 이동
+            ServiceSquareButton(
+              label: '깨우기',
+              icon: Icons.qr_code_scanner,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const WakeTargetListScreen(),
+                  ),
+                );
+              },
+            ),
             // 나의 기록
             ServiceSquareButton(
               label: '나의 기록',
               icon: Icons.bar_chart,
               onTap: () {
-                // TODO: 결과/기록 페이지로 이동
+                // TODO: 통계/기록 화면 연결 예정
               },
             ),
             // 내 좌석 반납
