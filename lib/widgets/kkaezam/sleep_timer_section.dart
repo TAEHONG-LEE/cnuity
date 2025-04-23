@@ -1,8 +1,10 @@
+// lib/widgets/kkaezam/sleep_timer_section.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'wake_up_button.dart';
+import 'qr_wake_button.dart'; // ✅ QR 기상 버튼 import
 
 class SleepTimerSection extends StatefulWidget {
   final VoidCallback onFinish;
@@ -171,7 +173,7 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
             style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          if (canWakeUp) WakeUpButton(onComplete: widget.onFinish),
+          if (canWakeUp) QrWakeButton(onComplete: widget.onFinish),
         ],
       ],
     );

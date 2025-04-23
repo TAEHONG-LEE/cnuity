@@ -5,7 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/common/service_square_button.dart';
 import 'kkaezam_seat_select_screen.dart';
 import 'kkaezam_sleep_timer_screen.dart';
-import 'qr/wake_target_list_screen.dart'; // ✅ 추가
+import 'kkaezam_history_screen.dart';
+import 'qr/wake_target_list_screen.dart';
 
 class KkaezamHomeScreen extends StatelessWidget {
   KkaezamHomeScreen({super.key});
@@ -128,7 +129,12 @@ class KkaezamHomeScreen extends StatelessWidget {
               label: '나의 기록',
               icon: Icons.bar_chart,
               onTap: () {
-                // TODO: 통계/기록 화면 연결 예정
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const KkaezamHistoryScreen(),
+                  ),
+                );
               },
             ),
             // 내 좌석 반납
