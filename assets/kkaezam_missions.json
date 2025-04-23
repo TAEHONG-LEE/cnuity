@@ -1,0 +1,82 @@
+{
+  "wake_3_others": {
+    "title": "타인 3명 깨우기",
+    "description": "QR로 친구를 3명 이상 깨우면 보상을 받아요!",
+    "type": "wake_by_other_count",
+    "condition": 3,
+    "reward": 10,
+    "isRepeatable": true,
+    "period": "weekly",
+    "active": true
+  },
+  "self_wake_3days": {
+    "title": "3일 연속 스스로 기상",
+    "description": "3일 연속 스스로 기상 성공 시 보상!",
+    "type": "self_wake_streak",
+    "condition": 3,
+    "reward": 10,
+    "isRepeatable": false,
+    "period": "once",
+    "active": true
+  },
+  "self_wake_5days": {
+    "title": "5일 연속 스스로 기상",
+    "description": "5일 연속 스스로 기상 성공 시 보상!",
+    "type": "self_wake_streak",
+    "condition": 5,
+    "reward": 10,
+    "isRepeatable": false,
+    "period": "once",
+    "active": true
+  },
+  "self_wake_7days": {
+    "title": "7일 연속 스스로 기상",
+    "description": "7일 연속 스스로 기상 성공 시 보상!",
+    "type": "self_wake_streak",
+    "condition": 7,
+    "reward": 10,
+    "isRepeatable": false,
+    "period": "once",
+    "active": true
+  },
+  "daily_visit_3days": {
+    "title": "3일 연속 앱 접속",
+    "description": "앱을 3일 연속 실행하면 보상을 받을 수 있어요.",
+    "type": "app_open_streak",
+    "condition": 3,
+    "reward": 10,
+    "isRepeatable": true,
+    "period": "none",
+    "active": true
+  },
+  "wake_before_7am": {
+    "title": "오전 7시 이전 기상",
+    "description": "아침 일찍 기상하는 습관을 만들어봐요!",
+    "type": "wake_before_time",
+    "condition": "07:00",
+    "reward": 10,
+    "isRepeatable": true,
+    "period": "daily",
+    "active": true
+  },
+  "return_seat_success": {
+    "title": "좌석 반납 성공",
+    "description": "자리를 반납하면 포인트를 받을 수 있어요.",
+    "type": "seat_return",
+    "condition": 1,
+    "reward": 10,
+    "isRepeatable": true,
+    "period": "daily",
+    "active": true
+  },
+  "set_and_complete_goal": {
+    "title": "학습 목표 달성",
+    "description": "목표를 세우고 타이머 인증을 완료하면 보상!",
+    "type": "custom_goal_timer",
+    "condition": "certified",
+    "reward": 10,
+    "isRepeatable": true,
+    "period": "user_defined",
+    "active": true
+  }
+}

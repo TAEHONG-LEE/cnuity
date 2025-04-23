@@ -6,6 +6,7 @@ import '../../widgets/common/service_square_button.dart';
 import 'kkaezam_seat_select_screen.dart';
 import 'kkaezam_sleep_timer_screen.dart';
 import 'kkaezam_history_screen.dart';
+import 'kkaezam_mission_screen.dart';
 import 'qr/wake_target_list_screen.dart';
 
 class KkaezamHomeScreen extends StatelessWidget {
@@ -75,7 +76,12 @@ class KkaezamHomeScreen extends StatelessWidget {
               label: '미션',
               icon: Icons.flag,
               onTap: () {
-                // TODO: 미션 페이지 연결 예정
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const KkaezamMissionScreen(),
+                  ),
+                );
               },
             ),
             // 잠자기

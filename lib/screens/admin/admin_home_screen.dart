@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'seat_initializer_screen.dart';
 import 'user_point_screen.dart';
-import 'user_initializer_screen.dart'; // 추가
+import 'user_initializer_screen.dart';
+import 'mission_initializer_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -62,6 +63,22 @@ class AdminHomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const UserInitializerScreen(),
+                  ),
+                );
+              },
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.flag),
+              label: const Text('미션 초기화'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MissionInitializerScreen(),
                   ),
                 );
               },
