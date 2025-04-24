@@ -1,3 +1,5 @@
+// lib/screens/kkaezam/qr/generate_wake_qr_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -25,6 +27,8 @@ class GenerateWakeQrScreen extends StatelessWidget {
       'seatId': seatId,
       'roomDocId': roomDocId,
       'wakerUid': user.uid,
+      'generatedAt': DateTime.now().toIso8601String(), // ✅ 문자열로 변환
+      'uid': user.uid, // 🔒 QR 유효성 확인을 위해 uid도 포함 (wake_by_self 대비)
     };
 
     final qrString = QrHelper.encodeQrData(data);

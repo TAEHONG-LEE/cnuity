@@ -3,6 +3,7 @@ import 'seat_initializer_screen.dart';
 import 'user_point_screen.dart';
 import 'user_initializer_screen.dart';
 import 'mission_initializer_screen.dart';
+import 'mission_challenge_initializer_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -79,6 +80,22 @@ class AdminHomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const MissionInitializerScreen(),
+                  ),
+                );
+              },
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.flag_circle),
+              label: const Text('도전 미션 초기화'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrangeAccent,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MissionChallengeInitializerScreen(),
                   ),
                 );
               },
