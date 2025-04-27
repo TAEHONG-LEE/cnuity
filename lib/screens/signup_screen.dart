@@ -1,3 +1,5 @@
+// lib/screens/signup_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,8 +16,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController nicknameController =
-      TextEditingController(); // 🔹 닉네임 입력 추가
+  final TextEditingController nicknameController = TextEditingController();
 
   bool _isProcessing = false;
 
@@ -55,14 +56,13 @@ class _SignupScreenState extends State<SignupScreen> {
       final User? user = credential.user;
 
       if (user != null) {
-        // Firestore에 유저 정보 저장
         final userDoc = FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid);
         await userDoc.set({
           'uid': user.uid,
           'email': email,
-          'nickname': nicknameController.text.trim(),
+          'nickname': nickname,
           'point': 50,
           'totalSleepTime': 0,
           'totalSessions': 0,
@@ -97,7 +97,8 @@ class _SignupScreenState extends State<SignupScreen> {
         title: const Text('회원가입'),
         backgroundColor: const Color(0xFF5197FF),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+        // 🔥 여기 추가
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
