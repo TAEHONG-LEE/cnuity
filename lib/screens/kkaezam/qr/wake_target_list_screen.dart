@@ -18,6 +18,7 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
   @override
   void initState() {
     super.initState();
+
     fetchSleepingSeats();
   }
 

@@ -1,33 +1,12 @@
-// lib/screens/kkaezam/qr/scan_qr_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/qr_helper.dart';
+import 'wake_result_screen.dart'; // ✅ 추가: 결과 화면 import
 
 class ScanQrScreen extends StatelessWidget {
   const ScanQrScreen({super.key});
-
-  Future<void> _logPointChange({
-    required String uid,
-    required int delta,
-    required String reason,
-  }) async {
-    final logRef =
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('point_logs')
-            .doc();
-
-    await logRef.set({
-      'logId': logRef.id,
-      'delta': delta,
-      'reason': reason,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-  }
 
   Future<void> _handleScan(
     String? rawData,
@@ -38,7 +17,7 @@ class ScanQrScreen extends StatelessWidget {
 
     try {
       final Map<String, dynamic> data = QrHelper.decodeQrData(rawData);
-      debugPrint('📦 받은 QR 데이터: $data'); // ✅ 디버깅용 출력
+      debugPrint('📦 받은 QR 데이터: $data');
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -47,21 +26,6 @@ class ScanQrScreen extends StatelessWidget {
       final int nowSeconds = now.seconds;
 
       final String type = data['type'];
-
-      // 🔒 유효 시간 체크 (wake_by_other만)
-      if (type == 'wake_by_other') {
-        final String generatedAtString = data['generatedAt'];
-        final DateTime generatedAt = DateTime.parse(generatedAtString);
-        final int generatedSeconds = Timestamp.fromDate(generatedAt).seconds;
-
-        if (nowSeconds - generatedSeconds > 300) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('QR 코드가 만료되었습니다. 다시 생성해주세요.')),
-          );
-          return;
-        }
-      }
-
       final String seatId = data['seatId'] ?? '';
       final String roomDocId = data['roomDocId'] ?? '';
       final String scannedUid = data['uid'];
@@ -83,120 +47,66 @@ class ScanQrScreen extends StatelessWidget {
               ? userRef.collection('sleep_sessions').doc(sessionId)
               : null;
 
-      // ✨ 스스로 기상 (본인 or universal_self_wake QR)
-      if (type == 'wake_by_self' &&
-          (scannedUid == currentUid || scannedUid == 'universal_self_wake')) {
-        if (seatId.isNotEmpty && roomDocId.isNotEmpty) {
-          final seatSnap = await seatRef.get();
-          final seatData = seatSnap.data();
-          final int sleepDuration = seatData?['sleepDuration'] ?? 0;
-          final int points = sleepDuration ~/ 60;
+      // 🔥 좌석 데이터 가져오기
+      final seatSnap = await seatRef.get();
+      final seatData = seatSnap.data();
 
-          await seatRef.update({
-            'status': 'woken_by_self',
-            'wakeTime': now,
-            'wasWokenByOther': false,
-            'isCompleted': true,
-          });
-
-          if (sessionRef != null) {
-            await sessionRef.update({
-              'wakeTime': now,
-              'isCompleted': true,
-              'result': '스스로 기상',
-              'pointsRewardedToOther': 0,
-            });
-          }
-
-          await userRef.update({
-            'selfWakeCount': FieldValue.increment(1),
-            'point': FieldValue.increment(points),
-            'totalEarnedPoints': FieldValue.increment(points),
-          });
-
-          await _logPointChange(
-            uid: scannedUid,
-            delta: points,
-            reason: '스스로 기상 보상',
-          );
-        }
-
-        Navigator.pop(context, 'wake_success');
-      }
-      // ✨ 타인 기상
-      else if (type == 'wake_by_other' && scannedUid != currentUid) {
-        final String wakerUid = currentUid;
-
-        final seatSnap = await seatRef.get();
-        final seatData = seatSnap.data();
-        final Timestamp startTime = seatData?['sleepStart'] ?? Timestamp.now();
-        final int sleepDuration = seatData?['sleepDuration'] ?? 0;
-        final int secondsElapsed = nowSeconds - startTime.seconds;
-
-        int pointsToWaker = 0;
-        int pointsToUser = 0;
-
-        if (secondsElapsed >= 1800) {
-          pointsToWaker = 10;
-          pointsToUser = 0;
-        } else if (secondsElapsed >= 600) {
-          pointsToWaker = 5;
-          pointsToUser = 5;
-        }
-
-        await seatRef.update({
-          'status': 'woken_by_other',
-          'wakeTime': now,
-          'wasWokenByOther': true,
-          'isCompleted': true,
-        });
-
-        if (sessionRef != null) {
-          await sessionRef.update({
-            'wakeTime': now,
-            'isCompleted': true,
-            'result': '타인에 의해 기상',
-            'pointsRewardedToOther': pointsToWaker,
-          });
-        }
-
-        await userRef.update({
-          'forcedWakeCount': FieldValue.increment(1),
-          if (pointsToUser > 0) 'point': FieldValue.increment(pointsToUser),
-          if (pointsToUser > 0)
-            'totalEarnedPoints': FieldValue.increment(pointsToUser),
-        });
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(wakerUid)
-            .update({
-              'point': FieldValue.increment(pointsToWaker),
-              'totalEarnedPoints': FieldValue.increment(pointsToWaker),
-            });
-
-        if (pointsToUser > 0) {
-          await _logPointChange(
-            uid: scannedUid,
-            delta: pointsToUser,
-            reason: '타인 기상 - 일부 보상 반환',
-          );
-        }
-
-        await _logPointChange(
-          uid: wakerUid,
-          delta: pointsToWaker,
-          reason: '타인 기상 보상',
-        );
-
-        Navigator.pop(context, 'wake_success');
-      }
-      // ❌ 잘못된 경우
-      else {
+      if (seatData == null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('잘못된 QR 코드이거나 권한이 없습니다.')));
+        ).showSnackBar(const SnackBar(content: Text('좌석 정보를 찾을 수 없습니다.')));
+        return;
       }
+
+      final sleepStart = (seatData['sleepStart'] as Timestamp?)?.toDate();
+      final wakeTime = (seatData['wakeTime'] as Timestamp?)?.toDate();
+      final int sleepDuration = seatData['sleepDuration'] ?? 0;
+
+      if (sleepStart == null || wakeTime == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('수면 시작 또는 기상 시간이 없습니다.')));
+        return;
+      }
+
+      // 🔥 기상 결과 타입 구분
+      String resultType = '기타';
+      if (type == 'wake_by_self') {
+        resultType = '스스로 기상';
+      } else if (type == 'wake_by_other') {
+        resultType = '타인에 의해 기상';
+      }
+
+      // 🔥 깨워준 사람 닉네임 가져오기
+      String wakerNickname = '본인';
+      if (type == 'wake_by_other' && scannedUid != currentUid) {
+        final wakerSnap =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUid)
+                .get();
+        wakerNickname = wakerSnap.data()?['nickname'] ?? '알 수 없음';
+      }
+
+      // 🔥 포인트 계산 (수면 시간 기반, 1분 = 1포인트 가정)
+      int points = wakeTime.difference(sleepStart).inMinutes;
+
+      // ✅ 결과 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => WakeResultScreen(
+                seatId: seatId,
+                resultType: resultType,
+                wakerNickname: wakerNickname,
+                sleepStart: sleepStart,
+                wakeTime: wakeTime,
+                sleepDuration: sleepDuration,
+                pointsEarned: points,
+              ),
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
