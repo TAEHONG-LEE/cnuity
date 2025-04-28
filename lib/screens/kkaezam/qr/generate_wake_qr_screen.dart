@@ -27,8 +27,8 @@ class GenerateWakeQrScreen extends StatelessWidget {
       'seatId': seatId,
       'roomDocId': roomDocId,
       'wakerUid': user.uid,
-      'generatedAt': DateTime.now().toIso8601String(), // ✅ 문자열로 변환
-      'uid': user.uid, // 🔒 QR 유효성 확인을 위해 uid도 포함 (wake_by_self 대비)
+      'generatedAt': DateTime.now().toIso8601String(), // ✅ 문자열 형태로 저장
+      'uid': user.uid, // 🔒 QR 유효성 확인용
     };
 
     final qrString = QrHelper.encodeQrData(data);

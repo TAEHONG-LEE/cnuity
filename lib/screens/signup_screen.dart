@@ -50,6 +50,21 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     try {
+      // 닉네임 중복 체크
+      final nicknameSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('nickname', isEqualTo: nickname)
+              .limit(1)
+              .get();
+
+      if (nicknameSnapshot.docs.isNotEmpty) {
+        Fluttertoast.showToast(msg: "이미 사용 중인 닉네임입니다.");
+        setState(() => _isProcessing = false);
+        return false;
+      }
+
+      // 이메일로 회원가입 시도
       final UserCredential credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
@@ -83,7 +98,14 @@ class _SignupScreenState extends State<SignupScreen> {
         return false;
       }
     } on FirebaseAuthException catch (e) {
-      Fluttertoast.showToast(msg: "에러 발생: ${e.message}");
+      if (e.code == 'email-already-in-use') {
+        Fluttertoast.showToast(msg: "이미 사용 중인 이메일입니다.");
+      } else {
+        Fluttertoast.showToast(msg: "에러 발생: ${e.message}");
+      }
+      return false;
+    } catch (e) {
+      Fluttertoast.showToast(msg: "알 수 없는 에러: $e");
       return false;
     } finally {
       setState(() => _isProcessing = false);
