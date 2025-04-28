@@ -35,7 +35,6 @@ class ScanQrScreen extends StatelessWidget {
       DateTime wakeTime = DateTime.now();
       int sleepDuration;
 
-      // ✅ 고정 QR 처리
       if (seatId.isEmpty || roomDocId.isEmpty) {
         final seatSnapshot =
             await FirebaseFirestore.instance
@@ -59,7 +58,6 @@ class ScanQrScreen extends StatelessWidget {
             (seatData['sleepStart'] as Timestamp?)?.toDate() ?? DateTime.now();
         sleepDuration = seatData['sleepDuration'] ?? 0;
 
-        // 🔥 열람실 이름 읽기
         final roomSnap =
             await FirebaseFirestore.instance
                 .collection('reading_rooms')
@@ -69,7 +67,6 @@ class ScanQrScreen extends StatelessWidget {
         final readingRoomName = roomData?['name'] ?? '알 수 없는 열람실';
         seatName = '$readingRoomName - $seatId번';
 
-        // 🔥 좌석 상태 업데이트 (스스로 기상)
         await FirebaseFirestore.instance
             .collection('reading_rooms')
             .doc(roomDocId)
@@ -81,9 +78,7 @@ class ScanQrScreen extends StatelessWidget {
               'wasWokenByOther': false,
               'isCompleted': true,
             });
-      }
-      // ✅ 일반 QR 처리
-      else {
+      } else {
         final seatRef = FirebaseFirestore.instance
             .collection('reading_rooms')
             .doc(roomDocId)
@@ -113,20 +108,28 @@ class ScanQrScreen extends StatelessWidget {
         seatName = '$readingRoomName - $seatId번';
       }
 
-      // 🔥 수면 시간 계산
+      // ✅ 수면 시간 계산
       final int actualSleepMinutes = wakeTime.difference(sleepStart).inMinutes;
       final int targetSleepMinutes = sleepDuration ~/ 60;
 
-      // 🔥 포인트 차감 로직
+      // ✅ 예약 때 차감했던 포인트 계산 (수면 목표 30분까지 10P, 그 이상 1분당 차감)
+      final int reservedPoints =
+          sleepDuration <= 1800 ? 10 : (sleepDuration / 60).ceil();
+
       int pointsDelta = 0;
       final int overSleepMinutes = actualSleepMinutes - targetSleepMinutes;
-      if (overSleepMinutes >= 30) {
-        pointsDelta = -10;
+
+      if (actualSleepMinutes <= 10) {
+        pointsDelta = -10; // 10분 이하 수면
+      } else if (overSleepMinutes >= 30) {
+        pointsDelta = -10; // 30분 초과
       } else if (overSleepMinutes >= 10) {
-        pointsDelta = -5;
+        pointsDelta = -5; // 10분 초과
+      } else {
+        pointsDelta = reservedPoints; // 정상 수면 (예약 때 깎은 포인트 복구)
       }
 
-      // 🔥 Sleep Session 기록 생성
+      // ✅ Sleep Session 기록
       final sessionRef =
           FirebaseFirestore.instance
               .collection('users')
@@ -146,7 +149,7 @@ class ScanQrScreen extends StatelessWidget {
         'roomDocId': roomDocId,
       });
 
-      // 🔥 User 문서 업데이트
+      // ✅ User 문서 업데이트
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUid)
@@ -167,7 +170,7 @@ class ScanQrScreen extends StatelessWidget {
             'point': FieldValue.increment(pointsDelta),
           });
 
-      // 🔥 포인트 로그 추가
+      // ✅ 포인트 로그 기록
       if (pointsDelta != 0) {
         final logRef =
             FirebaseFirestore.instance
@@ -178,7 +181,7 @@ class ScanQrScreen extends StatelessWidget {
         await logRef.set({
           'logId': logRef.id,
           'delta': pointsDelta,
-          'reason': pointsDelta > 0 ? '수면 완료 보상' : '수면 목표 초과 벌점',
+          'reason': pointsDelta > 0 ? '수면 목표 달성 포인트 복구' : '수면 목표 초과 벌점',
           'timestamp': FieldValue.serverTimestamp(),
         });
       }
