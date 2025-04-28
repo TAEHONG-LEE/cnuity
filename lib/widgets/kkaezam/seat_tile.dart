@@ -38,29 +38,9 @@ class _SeatTileState extends State<SeatTile>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
-    );
-    _checkAnimation();
-  }
-
-  @override
-  void didUpdateWidget(covariant SeatTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _checkAnimation();
-  }
-
-  void _checkAnimation() {
-    final status = widget.seatData['status'] ?? 'available';
-    if (status == 'wake_waiting') {
-      if (!_controller.isAnimating) {
-        _controller.repeat(reverse: true);
-      }
-    } else {
-      if (_controller.isAnimating) {
-        _controller.stop();
-      }
-    }
+    )..repeat();
   }
 
   @override
@@ -125,10 +105,6 @@ class _SeatTileState extends State<SeatTile>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.seatData.isEmpty) {
-      return const SizedBox(); // 🔥 seatData 아직 없으면 빈 공간 처리
-    }
-
     final String status = widget.seatData['status'] ?? 'available';
     final String reservedBy = widget.seatData['reservedBy'] ?? '';
     final String? currentUid = FirebaseAuth.instance.currentUser?.uid;
@@ -143,7 +119,7 @@ class _SeatTileState extends State<SeatTile>
         .doc(widget.roomDocId);
 
     final scale =
-        (status == 'wake_waiting' && _controller.isAnimating)
+        status == 'wake_waiting'
             ? 1 + 0.1 * sin(_controller.value * 2 * pi)
             : 1.0;
 

@@ -1,5 +1,4 @@
 // lib/widgets/kkaezam/sleep_timer_section.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,7 +15,7 @@ class SleepTimerSection extends StatefulWidget {
 }
 
 class _SleepTimerSectionState extends State<SleepTimerSection> {
-  int sleepDuration = 30 * 60;
+  int sleepDuration = 30 * 60; // 기본 30분
   int elapsedTime = 0;
   Timer? timer;
   bool isSleeping = false;
@@ -94,16 +93,21 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
         return;
       }
 
+      // ✅ 좌석 상태만 업데이트 (수면 예약)
       await seatRef.update({
         'status': 'sleeping',
         'sleepStart': Timestamp.now(),
         'sleepDuration': sleepDuration,
       });
 
+      // ✅ 포인트 차감 (예약 비용만)
       await userRef.update({
         'point': currentPoint - requiredPoints,
         'totalUsedPoints': FieldValue.increment(requiredPoints),
       });
+
+      // ❗ 여기서는 세션 기록 저장 ❌
+      // ❗ 여기서는 totalSessions, totalSleepTime 업데이트 ❌
 
       setState(() {
         isSleeping = true;
