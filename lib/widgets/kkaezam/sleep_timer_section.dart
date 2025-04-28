@@ -84,7 +84,9 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
       final seatDoc = snapshot.docs.first;
       final seatRef = seatDoc.reference;
 
-      final int requiredPoints = (sleepDuration / 60).ceil(); // 1분당 1포인트
+      // ✅ 목표 수면시간에 따라 필요한 포인트 계산
+      final int requiredPoints =
+          sleepDuration <= 1800 ? 10 : (sleepDuration / 60).ceil();
 
       if (currentPoint < requiredPoints) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -93,21 +95,18 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
         return;
       }
 
-      // ✅ 좌석 상태만 업데이트 (수면 예약)
+      // ✅ 좌석 상태 업데이트
       await seatRef.update({
         'status': 'sleeping',
         'sleepStart': Timestamp.now(),
         'sleepDuration': sleepDuration,
       });
 
-      // ✅ 포인트 차감 (예약 비용만)
+      // ✅ 포인트 차감 (예약 비용)
       await userRef.update({
         'point': currentPoint - requiredPoints,
         'totalUsedPoints': FieldValue.increment(requiredPoints),
       });
-
-      // ❗ 여기서는 세션 기록 저장 ❌
-      // ❗ 여기서는 totalSessions, totalSleepTime 업데이트 ❌
 
       setState(() {
         isSleeping = true;
