@@ -108,25 +108,45 @@ class ScanQrScreen extends StatelessWidget {
         seatName = '$readingRoomName - $seatId번';
       }
 
-      // ✅ 수면 시간 계산
+      // ✅ 수면 시간 계산 (분으로 변환)
       final int actualSleepMinutes = wakeTime.difference(sleepStart).inMinutes;
       final int targetSleepMinutes = sleepDuration ~/ 60;
 
-      // ✅ 예약 때 차감했던 포인트 계산 (수면 목표 30분까지 10P, 그 이상 1분당 차감)
+      // ✅ 예약 시 차감했던 포인트 계산 (30분 이하 10P, 그 이상 1분당 차감)
       final int reservedPoints =
-          sleepDuration <= 1800 ? 10 : (sleepDuration / 60).ceil();
+          sleepDuration <= 1800
+              ? 10 // 30분 이하 예약 시 10포인트 차감
+              : (sleepDuration - 1800); // 30분 초과 시, 초과분에 대해 1분당 차감
 
       int pointsDelta = 0;
       final int overSleepMinutes = actualSleepMinutes - targetSleepMinutes;
 
       if (actualSleepMinutes <= 10) {
-        pointsDelta = -10; // 10분 이하 수면
+        pointsDelta = 0; // 10분 이하 수면
       } else if (overSleepMinutes >= 30) {
         pointsDelta = -10; // 30분 초과
       } else if (overSleepMinutes >= 10) {
         pointsDelta = -5; // 10분 초과
       } else {
         pointsDelta = reservedPoints; // 정상 수면 (예약 때 깎은 포인트 복구)
+      }
+
+      // ✅ 포인트 차감 또는 복구가 중복되지 않도록 확인
+      if (pointsDelta != 0) {
+        final logRef =
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUid)
+                .collection('point_logs')
+                .doc();
+
+        // 포인트 로그 기록
+        await logRef.set({
+          'logId': logRef.id,
+          'delta': pointsDelta,
+          'reason': pointsDelta > 0 ? '수면 목표 달성 포인트 복구' : '수면 목표 초과 벌점',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
       }
 
       // ✅ Sleep Session 기록
@@ -170,22 +190,6 @@ class ScanQrScreen extends StatelessWidget {
             'point': FieldValue.increment(pointsDelta),
           });
 
-      // ✅ 포인트 로그 기록
-      if (pointsDelta != 0) {
-        final logRef =
-            FirebaseFirestore.instance
-                .collection('users')
-                .doc(currentUid)
-                .collection('point_logs')
-                .doc();
-        await logRef.set({
-          'logId': logRef.id,
-          'delta': pointsDelta,
-          'reason': pointsDelta > 0 ? '수면 목표 달성 포인트 복구' : '수면 목표 초과 벌점',
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-      }
-
       // ✅ WakeResultScreen 이동
       Navigator.pushReplacement(
         context,
@@ -199,6 +203,8 @@ class ScanQrScreen extends StatelessWidget {
                 wakeTime: wakeTime,
                 sleepDuration: sleepDuration,
                 pointsEarned: pointsDelta,
+                actualSleepMinutes: actualSleepMinutes, // 실제 수면 시간 전달
+                overSleepMinutes: overSleepMinutes, // 초과 수면 시간 전달
               ),
         ),
       );
