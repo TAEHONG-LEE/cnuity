@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:confetti/confetti.dart';
 
-class WakeResultScreen extends StatelessWidget {
+class WakeResultScreen extends StatefulWidget {
   final String seatName;
   final String resultType;
   final String wakerNickname;
@@ -21,25 +22,40 @@ class WakeResultScreen extends StatelessWidget {
     required this.wakeTime,
     required this.sleepDuration,
     required this.pointsEarned,
-    required this.actualSleepMinutes, // 실제 수면 시간
-    required this.overSleepMinutes, // 초과 수면 시간
+    required this.actualSleepMinutes,
+    required this.overSleepMinutes,
   });
+
+  @override
+  _WakeResultScreenState createState() => _WakeResultScreenState();
+}
+
+class _WakeResultScreenState extends State<WakeResultScreen> {
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
+
+    // 포인트가 0 이상일 때 빵빠레 애니메이션을 실행
+    if (widget.pointsEarned > 0) {
+      _confettiController.play();
+    }
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final formatter = DateFormat('HH:mm');
-
-    // 디버깅 정보를 출력
-    debugPrint('📍 자리: $seatName');
-    debugPrint('🛌 수면 시작 시간: ${formatter.format(sleepStart)}');
-    debugPrint('🌞 기상 시간: ${formatter.format(wakeTime)}');
-    debugPrint('⏳ 실제 수면 시간: $actualSleepMinutes 분');
-    debugPrint('🎯 목표 수면 시간: ${sleepDuration ~/ 60} 분');
-    debugPrint('📝 실제 수면 시간 초과: $overSleepMinutes 분');
-    debugPrint(
-      '💡 예약된 목표 수면 시간 초과 여부: ${overSleepMinutes >= 30 ? '30분 초과 (-10P)' : (overSleepMinutes >= 10 ? '10분 초과 (-5P)' : '정상 수면')}',
-    );
-    debugPrint('🏆 획득한 포인트: $pointsEarned 점');
+    final bool isGoalAchieved = widget.overSleepMinutes >= 10;
 
     return Scaffold(
       appBar: AppBar(
@@ -51,38 +67,94 @@ class WakeResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('📍 자리: $seatName', style: _titleStyle),
-            const SizedBox(height: 12),
-            Text(
-              '🛌 수면 시작 시간: ${formatter.format(sleepStart)}',
-              style: _normalStyle,
+            // 빵빠레 애니메이션
+            Align(
+              alignment: Alignment.center,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [
+                  Colors.green,
+                  Colors.blue,
+                  Colors.pink,
+                  Colors.yellow,
+                ],
+              ),
             ),
-            Text(
-              '🌞 기상 시간: ${formatter.format(wakeTime)}',
-              style: _normalStyle,
+            const SizedBox(height: 16),
+
+            // 자리
+            _buildInfoCard(
+              title: '📍 자리',
+              value: widget.seatName,
+              icon: Icons.location_on,
             ),
-            const SizedBox(height: 12),
-            Text('⏳ 실제 수면 시간: $actualSleepMinutes 분', style: _normalStyle),
-            Text('🎯 목표 수면 시간: ${sleepDuration ~/ 60} 분', style: _normalStyle),
-            const SizedBox(height: 12),
-            Text('🙋 깨워준 사람: $wakerNickname', style: _normalStyle),
-            Text('📋 기상 방식: $resultType', style: _normalStyle),
-            const SizedBox(height: 12),
-            Text('🏆 획득한 포인트: $pointsEarned 점', style: _pointStyle),
-            const SizedBox(height: 12),
-            // 디버깅 정보 추가
-            Text('📝 실제 수면 시간 초과: $overSleepMinutes 분', style: _debugStyle),
-            Text(
-              '💡 예약된 목표 수면 시간 초과 여부: ${overSleepMinutes >= 30 ? '30분 초과 (-10P)' : (overSleepMinutes >= 10 ? '10분 초과 (-5P)' : '정상 수면')}',
-              style: _debugStyle,
+
+            // 수면 시간
+            _buildInfoCard(
+              title: '🛌 수면 시작 시간',
+              value: formatter.format(widget.sleepStart),
+              icon: Icons.access_time,
             ),
+            _buildInfoCard(
+              title: '🌞 기상 시간',
+              value: formatter.format(widget.wakeTime),
+              icon: Icons.access_alarm,
+            ),
+
+            const SizedBox(height: 12),
+
+            // 수면 상세 정보
+            _buildInfoCard(
+              title: '⏳ 실제 수면 시간',
+              value: '${widget.actualSleepMinutes} 분',
+              icon: Icons.hourglass_empty,
+            ),
+            _buildInfoCard(
+              title: '🎯 목표 수면 시간',
+              value: '${widget.sleepDuration ~/ 60} 분',
+              icon: Icons.timer,
+            ),
+
+            const SizedBox(height: 12),
+
+            // 기상 방식과 깨운 사람
+            _buildInfoCard(
+              title: '🙋 깨워준 사람',
+              value: widget.wakerNickname,
+              icon: Icons.person,
+            ),
+            _buildInfoCard(
+              title: '📋 기상 방식',
+              value: widget.resultType,
+              icon: Icons.radio_button_checked,
+            ),
+
+            const SizedBox(height: 12),
+
+            // 포인트
+            _buildInfoCard(
+              title: '🏆 획득한 포인트',
+              value: '${widget.pointsEarned} 점',
+              icon: Icons.stars,
+              isPoints: true,
+            ),
+
             const Spacer(),
+
+            // "홈으로 돌아가기" 버튼
             Center(
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },
                 child: const Text('홈으로 돌아가기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Colors.blueAccent, // primary 대신 backgroundColor로 변경
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ),
           ],
@@ -91,20 +163,39 @@ class WakeResultScreen extends StatelessWidget {
     );
   }
 
-  TextStyle get _titleStyle =>
-      const TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
-
-  TextStyle get _normalStyle => const TextStyle(fontSize: 16);
-
-  TextStyle get _pointStyle => const TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.bold,
-    color: Colors.blueAccent,
-  );
-
-  TextStyle get _debugStyle => const TextStyle(
-    fontSize: 14,
-    color: Colors.red,
-    fontWeight: FontWeight.bold,
-  );
+  // 카드 형태로 정보를 표시하는 위젯
+  Widget _buildInfoCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    bool isPoints = false,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.blueAccent),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(value, style: TextStyle(fontSize: isPoints ? 20 : 16)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

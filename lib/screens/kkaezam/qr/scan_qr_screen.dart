@@ -3,17 +3,28 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/qr_helper.dart';
-import 'wake_result_screen.dart';
+import 'wake_result_screen.dart'; // ✅ WakeResultScreen 임포트
 
-class ScanQrScreen extends StatelessWidget {
+class ScanQrScreen extends StatefulWidget {
   const ScanQrScreen({super.key});
+
+  @override
+  _ScanQrScreenState createState() => _ScanQrScreenState();
+}
+
+class _ScanQrScreenState extends State<ScanQrScreen> {
+  bool isProcessing = false; // QR 스캔 처리 중인지 여부를 확인하는 플래그
 
   Future<void> _handleScan(
     String? rawData,
     BuildContext context,
     MobileScannerController controller,
   ) async {
-    if (rawData == null) return;
+    if (rawData == null || isProcessing) return; // 처리 중이면 아무것도 안 함
+
+    setState(() {
+      isProcessing = true; // 스캔 처리 시작
+    });
 
     try {
       final Map<String, dynamic> data = QrHelper.decodeQrData(rawData);
@@ -121,14 +132,12 @@ class ScanQrScreen extends StatelessWidget {
       int pointsDelta = 0;
       final int overSleepMinutes = actualSleepMinutes - targetSleepMinutes;
 
-      if (actualSleepMinutes <= 10) {
-        pointsDelta = 0; // 10분 이하 수면
-      } else if (overSleepMinutes >= 30) {
-        pointsDelta = -10; // 30분 초과
+      if (overSleepMinutes >= 30) {
+        pointsDelta = -10; // 30분 초과 시 10포인트 차감
       } else if (overSleepMinutes >= 10) {
-        pointsDelta = -5; // 10분 초과
+        pointsDelta = -5; // 10분 초과 시 5포인트 차감
       } else {
-        pointsDelta = reservedPoints; // 정상 수면 (예약 때 깎은 포인트 복구)
+        pointsDelta = reservedPoints; // 목표 수면 내에서 수면 시 예약된 포인트 복구
       }
 
       // ✅ 포인트 차감 또는 복구가 중복되지 않도록 확인
