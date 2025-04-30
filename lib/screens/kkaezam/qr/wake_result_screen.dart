@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
+import '../kkaezam_home_screen.dart'; // 깨잠 홈 화면으로 이동
 
 class WakeResultScreen extends StatefulWidget {
   final String seatName;
@@ -10,8 +11,8 @@ class WakeResultScreen extends StatefulWidget {
   final DateTime wakeTime;
   final int sleepDuration;
   final int pointsEarned;
-  final int actualSleepMinutes; // 실제 수면 시간
-  final int overSleepMinutes; // 초과 수면 시간
+  final int actualSleepMinutes;
+  final int overSleepMinutes;
 
   const WakeResultScreen({
     super.key,
@@ -27,7 +28,7 @@ class WakeResultScreen extends StatefulWidget {
   });
 
   @override
-  _WakeResultScreenState createState() => _WakeResultScreenState();
+  State<WakeResultScreen> createState() => _WakeResultScreenState();
 }
 
 class _WakeResultScreenState extends State<WakeResultScreen> {
@@ -40,7 +41,7 @@ class _WakeResultScreenState extends State<WakeResultScreen> {
       duration: const Duration(seconds: 2),
     );
 
-    // 포인트가 0 이상일 때 빵빠레 애니메이션을 실행
+    // 포인트가 있을 경우 축하 애니메이션 실행
     if (widget.pointsEarned > 0) {
       _confettiController.play();
     }
@@ -55,14 +56,13 @@ class _WakeResultScreenState extends State<WakeResultScreen> {
   @override
   Widget build(BuildContext context) {
     final formatter = DateFormat('HH:mm');
-    final bool isGoalAchieved = widget.overSleepMinutes >= 10;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('기상 결과 요약'),
         backgroundColor: const Color(0xFF5197FF),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,76 +84,70 @@ class _WakeResultScreenState extends State<WakeResultScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 자리
+            // 수면 관련 정보
+            _buildInfoCard('📍 자리', widget.seatName, Icons.location_on),
             _buildInfoCard(
-              title: '📍 자리',
-              value: widget.seatName,
-              icon: Icons.location_on,
-            ),
-
-            // 수면 시간
-            _buildInfoCard(
-              title: '🛌 수면 시작 시간',
-              value: formatter.format(widget.sleepStart),
-              icon: Icons.access_time,
+              '🛌 수면 시작 시간',
+              formatter.format(widget.sleepStart),
+              Icons.access_time,
             ),
             _buildInfoCard(
-              title: '🌞 기상 시간',
-              value: formatter.format(widget.wakeTime),
-              icon: Icons.access_alarm,
+              '🌞 기상 시간',
+              formatter.format(widget.wakeTime),
+              Icons.access_alarm,
             ),
-
             const SizedBox(height: 12),
-
-            // 수면 상세 정보
             _buildInfoCard(
-              title: '⏳ 실제 수면 시간',
-              value: '${widget.actualSleepMinutes} 분',
-              icon: Icons.hourglass_empty,
+              '⏳ 실제 수면 시간',
+              '${widget.actualSleepMinutes} 분',
+              Icons.hourglass_empty,
             ),
             _buildInfoCard(
-              title: '🎯 목표 수면 시간',
-              value: '${widget.sleepDuration ~/ 60} 분',
-              icon: Icons.timer,
+              '🎯 목표 수면 시간',
+              '${widget.sleepDuration ~/ 60} 분',
+              Icons.timer,
             ),
-
             const SizedBox(height: 12),
-
-            // 기상 방식과 깨운 사람
+            _buildInfoCard('🙋 깨워준 사람', widget.wakerNickname, Icons.person),
             _buildInfoCard(
-              title: '🙋 깨워준 사람',
-              value: widget.wakerNickname,
-              icon: Icons.person,
+              '📋 기상 방식',
+              widget.resultType,
+              Icons.radio_button_checked,
             ),
-            _buildInfoCard(
-              title: '📋 기상 방식',
-              value: widget.resultType,
-              icon: Icons.radio_button_checked,
-            ),
-
             const SizedBox(height: 12),
-
-            // 포인트
             _buildInfoCard(
-              title: '🏆 획득한 포인트',
-              value: '${widget.pointsEarned} 점',
-              icon: Icons.stars,
+              '🏆 획득한 포인트',
+              '${widget.pointsEarned} 점',
+              Icons.stars,
               isPoints: true,
             ),
+            const SizedBox(height: 24),
 
-            const Spacer(),
-
-            // "홈으로 돌아가기" 버튼
-            Center(
+            // 홈으로 돌아가기 버튼
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => KkaezamHomeScreen()),
+                    (route) => false,
+                  );
                 },
-                child: const Text('홈으로 돌아가기'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Colors.blueAccent, // primary 대신 backgroundColor로 변경
+                  backgroundColor: const Color(0xFF5197FF),
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  '깨잠 홈으로 돌아가기',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -163,11 +157,10 @@ class _WakeResultScreenState extends State<WakeResultScreen> {
     );
   }
 
-  // 카드 형태로 정보를 표시하는 위젯
-  Widget _buildInfoCard({
-    required String title,
-    required String value,
-    required IconData icon,
+  Widget _buildInfoCard(
+    String title,
+    String value,
+    IconData icon, {
     bool isPoints = false,
   }) {
     return Card(
