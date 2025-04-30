@@ -133,9 +133,9 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
       final int overSleepMinutes = actualSleepMinutes - targetSleepMinutes;
 
       if (overSleepMinutes >= 30) {
-        pointsDelta = -10; // 30분 초과 시 10포인트 차감
+        pointsDelta = 0; // 30분 초과 시 복구 없음
       } else if (overSleepMinutes >= 10) {
-        pointsDelta = -5; // 10분 초과 시 5포인트 차감
+        pointsDelta = 5; // 10분 초과 시 5포인트만 복구
       } else {
         pointsDelta = reservedPoints; // 목표 수면 내에서 수면 시 예약된 포인트 복구
       }

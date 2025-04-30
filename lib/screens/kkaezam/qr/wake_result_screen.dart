@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:confetti/confetti.dart';
-import '../kkaezam_home_screen.dart'; // 깨잠 홈 화면으로 이동
+import '../kkaezam_home_screen.dart'; // 홈으로 이동
 
 class WakeResultScreen extends StatefulWidget {
   final String seatName;
@@ -41,7 +41,6 @@ class _WakeResultScreenState extends State<WakeResultScreen> {
       duration: const Duration(seconds: 2),
     );
 
-    // 포인트가 있을 경우 축하 애니메이션 실행
     if (widget.pointsEarned > 0) {
       _confettiController.play();
     }
@@ -62,97 +61,106 @@ class _WakeResultScreenState extends State<WakeResultScreen> {
         title: const Text('기상 결과 요약'),
         backgroundColor: const Color(0xFF5197FF),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 빵빠레 애니메이션
-            Align(
-              alignment: Alignment.center,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
-                shouldLoop: false,
-                colors: const [
-                  Colors.green,
-                  Colors.blue,
-                  Colors.pink,
-                  Colors.yellow,
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+      body: Stack(
+        children: [
+          // Scrollable content
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 60), // for confetti space
 
-            // 수면 관련 정보
-            _buildInfoCard('📍 자리', widget.seatName, Icons.location_on),
-            _buildInfoCard(
-              '🛌 수면 시작 시간',
-              formatter.format(widget.sleepStart),
-              Icons.access_time,
-            ),
-            _buildInfoCard(
-              '🌞 기상 시간',
-              formatter.format(widget.wakeTime),
-              Icons.access_alarm,
-            ),
-            const SizedBox(height: 12),
-            _buildInfoCard(
-              '⏳ 실제 수면 시간',
-              '${widget.actualSleepMinutes} 분',
-              Icons.hourglass_empty,
-            ),
-            _buildInfoCard(
-              '🎯 목표 수면 시간',
-              '${widget.sleepDuration ~/ 60} 분',
-              Icons.timer,
-            ),
-            const SizedBox(height: 12),
-            _buildInfoCard('🙋 깨워준 사람', widget.wakerNickname, Icons.person),
-            _buildInfoCard(
-              '📋 기상 방식',
-              widget.resultType,
-              Icons.radio_button_checked,
-            ),
-            const SizedBox(height: 12),
-            _buildInfoCard(
-              '🏆 획득한 포인트',
-              '${widget.pointsEarned} 점',
-              Icons.stars,
-              isPoints: true,
-            ),
-            const SizedBox(height: 24),
+                _buildInfoCard('📍 자리', widget.seatName, Icons.location_on),
+                _buildInfoCard(
+                  '🛌 수면 시작 시간',
+                  formatter.format(widget.sleepStart),
+                  Icons.access_time,
+                ),
+                _buildInfoCard(
+                  '🌞 기상 시간',
+                  formatter.format(widget.wakeTime),
+                  Icons.access_alarm,
+                ),
+                const SizedBox(height: 12),
+                _buildInfoCard(
+                  '⏳ 실제 수면 시간',
+                  '${widget.actualSleepMinutes} 분',
+                  Icons.hourglass_empty,
+                ),
+                _buildInfoCard(
+                  '🎯 목표 수면 시간',
+                  '${widget.sleepDuration ~/ 60} 분',
+                  Icons.timer,
+                ),
+                const SizedBox(height: 12),
+                _buildInfoCard('🙋 깨워준 사람', widget.wakerNickname, Icons.person),
+                _buildInfoCard(
+                  '📋 기상 방식',
+                  widget.resultType,
+                  Icons.radio_button_checked,
+                ),
+                const SizedBox(height: 12),
+                _buildInfoCard(
+                  '🏆 획득한 포인트',
+                  '${widget.pointsEarned} 점',
+                  Icons.stars,
+                  isPoints: true,
+                ),
+                const SizedBox(height: 24),
 
-            // 홈으로 돌아가기 버튼
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => KkaezamHomeScreen()),
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5197FF),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => KkaezamHomeScreen()),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5197FF),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      '깨잠 홈으로 돌아가기',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  '깨잠 홈으로 돌아가기',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // 🎉 Confetti (위에 보이게)
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.yellow,
+              ],
+              maxBlastForce: 30,
+              minBlastForce: 10,
+              emissionFrequency: 0.05,
+              numberOfParticles: 20,
+              gravity: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
