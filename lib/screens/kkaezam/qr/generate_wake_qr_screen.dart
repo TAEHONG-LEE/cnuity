@@ -8,11 +8,13 @@ import '../../../utils/qr_helper.dart';
 class GenerateWakeQrScreen extends StatelessWidget {
   final String seatId;
   final String roomDocId;
+  final String targetUid; // 👈 깨울 대상 UID
 
   const GenerateWakeQrScreen({
     super.key,
     required this.seatId,
     required this.roomDocId,
+    required this.targetUid,
   });
 
   @override
@@ -26,18 +28,15 @@ class GenerateWakeQrScreen extends StatelessWidget {
       'type': 'wake_by_other',
       'seatId': seatId,
       'roomDocId': roomDocId,
-      'wakerUid': user.uid,
-      'generatedAt': DateTime.now().toIso8601String(), // ✅ 문자열 형태로 저장
-      'uid': user.uid, // 🔒 QR 유효성 확인용
+      'wakerUid': user.uid, // 깨우는 사람
+      'targetUid': targetUid, // 깨울 대상자
+      'generatedAt': DateTime.now().toIso8601String(),
     };
 
     final qrString = QrHelper.encodeQrData(data);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('기상 유도 QR 생성'),
-        backgroundColor: const Color(0xFF5197FF),
-      ),
+      appBar: AppBar(title: const Text('기상 유도 QR 생성')),
       body: Center(
         child: QrImageView(
           data: qrString,

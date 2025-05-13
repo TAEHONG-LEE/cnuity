@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'generate_wake_qr_screen.dart'; // 🔄 디렉토리 구조 반영
+import 'generate_wake_qr_screen.dart';
 
 class WakeTargetListScreen extends StatefulWidget {
   const WakeTargetListScreen({super.key});
@@ -18,11 +18,10 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
   @override
   void initState() {
     super.initState();
-
     fetchSleepingSeats();
   }
 
-  // 🔍 상태가 sleeping인 좌석 중, 수면 시간이 초과된 좌석만 필터링
+  // sleeping 상태이면서 수면 시간이 초과된 좌석만 필터링
   Future<void> fetchSleepingSeats() async {
     final now = DateTime.now();
     final querySnapshot =
@@ -35,10 +34,19 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
 
     for (final doc in querySnapshot.docs) {
       final data = doc.data();
-      final Timestamp start = data['sleepStart'];
-      final int duration = data['sleepDuration'];
-      final seatId = data['seatId'];
-      final roomDocId = data['roomDocId'];
+      final Timestamp? start = data['sleepStart'];
+      final int? duration = data['sleepDuration'];
+      final String? seatId = data['seatId'];
+      final String? roomDocId = data['roomDocId'];
+      final String? reservedBy = data['reservedBy']; // ✅ 추가됨
+
+      if (start == null ||
+          duration == null ||
+          seatId == null ||
+          roomDocId == null ||
+          reservedBy == null) {
+        continue;
+      }
 
       final DateTime startTime = start.toDate();
       final int elapsed = now.difference(startTime).inSeconds;
@@ -48,12 +56,13 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
         results.add({
           'seatId': seatId,
           'roomDocId': roomDocId,
+          'targetUid': reservedBy, // ✅ QR로 전달될 대상 UID
           'overtime': overtime,
         });
       }
     }
 
-    // 🔽 초과 시간이 긴 순서로 정렬
+    // 초과 시간 기준 정렬
     results.sort((a, b) => b['overtime'].compareTo(a['overtime']));
 
     setState(() {
@@ -94,7 +103,6 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
                         '초과 시간: ${formatOvertime(seat['overtime'])}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      // 👉 좌석 클릭 시 QR 생성 화면으로 이동
                       onTap: () {
                         Navigator.push(
                           context,
@@ -103,6 +111,7 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
                                 (_) => GenerateWakeQrScreen(
                                   seatId: seat['seatId'],
                                   roomDocId: seat['roomDocId'],
+                                  targetUid: seat['targetUid'], // ✅ target 전달
                                 ),
                           ),
                         );
