@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'signup_screen.dart';
 import 'home/home_screen.dart';
 import 'admin/seat_initializer_screen.dart'; // 관리자용 화면 import
+import '../utils/fcm_helper.dart'; // FCM 관련 import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       Fluttertoast.showToast(msg: "로그인 성공");
+      await FcmService.init();
       await navigateToHome(context);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
@@ -55,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
         email: 'admin@cnuity.com',
         password: 'adminpassword123',
       );
-
+      await FcmService.init();
       if (!context.mounted) return;
 
       // // ✅ 필요 시 아래 줄 주석 해제하여 관리자 페이지로 진입
