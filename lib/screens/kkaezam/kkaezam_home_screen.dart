@@ -98,7 +98,12 @@ class KkaezamHomeScreen extends StatelessWidget {
                         .where('reservedBy', isEqualTo: currentUid)
                         .where(
                           'status',
-                          whereIn: ['reserved', 'sleeping', 'woken_by_self'],
+                          whereIn: [
+                            'reserved',
+                            'sleeping',
+                            'woken_by_self',
+                            'woken_by_other',
+                          ],
                         )
                         .get();
 

@@ -27,7 +27,7 @@ class _WakeTargetListScreenState extends State<WakeTargetListScreen> {
     final querySnapshot =
         await FirebaseFirestore.instance
             .collectionGroup('seats')
-            .where('status', isEqualTo: 'sleeping')
+            .where('status', isEqualTo: 'wake_waiting')
             .get();
 
     final results = <Map<String, dynamic>>[];

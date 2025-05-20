@@ -1,3 +1,5 @@
+// ✅ SeatTile.dart (수정된 onTap 로직 포함)
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -136,19 +138,45 @@ class _SeatTileState extends State<SeatTile>
               if (currentUid == null) return;
               final seatRef = seatsRef.doc(widget.seatNumber.toString());
 
-              if (isReservedByOther(reservedBy, currentUid) ||
-                  (status != 'available' &&
-                      !isReservedByMe(reservedBy, currentUid))) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${widget.seatNumber}번 좌석은 선택할 수 없습니다. 상태: $status',
+              // ✅ 타인이 예약한 좌석 클릭 시 처리
+              if (isReservedByOther(reservedBy, currentUid)) {
+                if (status == 'wake_waiting') {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (_) => AlertDialog(
+                          title: const Text('기상 대기 중인 좌석'),
+                          content: const Text('사용자를 깨우시겠습니까?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('취소'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('QR 스캔 화면으로 이동 예정'),
+                                  ),
+                                );
+                              },
+                              child: const Text('깨우기'),
+                            ),
+                          ],
+                        ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('해당 좌석은 사용 중입니다. 다른 좌석을 선택해주세요.'),
                     ),
-                  ),
-                );
+                  );
+                }
                 return;
               }
 
+              // ✅ 본인 좌석 클릭 시 반납 다이얼로그
               if (isReservedByMe(reservedBy, currentUid)) {
                 showDialog(
                   context: context,
@@ -196,6 +224,7 @@ class _SeatTileState extends State<SeatTile>
                 return;
               }
 
+              // ✅ 예약된 좌석이 있는지 확인 후 예약 처리
               final existing =
                   await seatsRef
                       .where('reservedBy', isEqualTo: currentUid)

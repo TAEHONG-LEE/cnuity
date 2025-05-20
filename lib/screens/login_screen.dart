@@ -31,6 +31,16 @@ class _LoginScreenState extends State<LoginScreen> {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
+    if (email.isEmpty || password.isEmpty) {
+      Fluttertoast.showToast(msg: "이메일과 비밀번호를 모두 입력해주세요.");
+      return;
+    }
+
+    if (!email.contains('@') || !email.contains('.')) {
+      Fluttertoast.showToast(msg: "올바른 이메일 형식을 입력해주세요.");
+      return;
+    }
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -41,13 +51,27 @@ class _LoginScreenState extends State<LoginScreen> {
       await FcmService.init();
       await navigateToHome(context);
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        Fluttertoast.showToast(msg: "사용자를 찾을 수 없습니다.");
-      } else if (e.code == 'wrong-password') {
-        Fluttertoast.showToast(msg: "잘못된 비밀번호입니다.");
-      } else {
-        Fluttertoast.showToast(msg: "로그인 에러: ${e.message}");
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = "등록되지 않은 이메일입니다.";
+          break;
+        case 'wrong-password':
+          message = "비밀번호가 일치하지 않습니다. 다시 입력해주세요.";
+          break;
+        case 'invalid-email':
+          message = "올바른 이메일 형식이 아닙니다.";
+          break;
+        case 'invalid-argument':
+          message = "올바른 이메일 형식을 입력해주세요.";
+          break;
+        case 'invalid-credential':
+          message = "등록되지 않았거나 비밀번호가 잘못되었습니다.";
+          break;
+        default:
+          message = "로그인 중 오류가 발생했습니다. 다시 시도해주세요.";
       }
+      Fluttertoast.showToast(msg: message);
     }
   }
 
@@ -72,7 +96,18 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } on FirebaseAuthException catch (e) {
-      Fluttertoast.showToast(msg: "자동 로그인 실패: ${e.message}");
+      String message;
+      switch (e.code) {
+        case 'wrong-password':
+          message = "관리자 비밀번호가 잘못되었습니다.";
+          break;
+        case 'user-not-found':
+          message = "관리자 계정을 찾을 수 없습니다.";
+          break;
+        default:
+          message = "자동 로그인 실패: 네트워크 또는 서버 오류입니다.";
+      }
+      Fluttertoast.showToast(msg: message);
     }
   }
 

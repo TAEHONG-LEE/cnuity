@@ -48,6 +48,17 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _isProcessing = false);
       return false;
     }
+    if (email.isEmpty || password.isEmpty || nickname.isEmpty) {
+      Fluttertoast.showToast(msg: "모든 항목을 입력해주세요.");
+      setState(() => _isProcessing = false);
+      return false;
+    }
+
+    if (!email.contains('@') || !email.contains('.')) {
+      Fluttertoast.showToast(msg: "올바른 이메일 형식을 입력해주세요.");
+      setState(() => _isProcessing = false);
+      return false;
+    }
 
     try {
       // 닉네임 중복 체크
@@ -98,11 +109,21 @@ class _SignupScreenState extends State<SignupScreen> {
         return false;
       }
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        Fluttertoast.showToast(msg: "이미 사용 중인 이메일입니다.");
-      } else {
-        Fluttertoast.showToast(msg: "에러 발생: ${e.message}");
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = "이미 사용 중인 이메일입니다.";
+          break;
+        case 'invalid-email':
+          message = "올바른 이메일 형식이 아닙니다.";
+          break;
+        case 'weak-password':
+          message = "비밀번호는 최소 6자 이상이어야 합니다.";
+          break;
+        default:
+          message = "회원가입 중 오류가 발생했습니다. 다시 시도해주세요.";
       }
+      Fluttertoast.showToast(msg: message);
       return false;
     } catch (e) {
       Fluttertoast.showToast(msg: "알 수 없는 에러: $e");
