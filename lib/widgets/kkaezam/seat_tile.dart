@@ -1,5 +1,3 @@
-// ✅ SeatTile.dart (wake_waiting 상태에서 QR 생성 시 필수 파라미터 전달)
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,9 +39,9 @@ class _SeatTileState extends State<SeatTile>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(seconds: 1),
       vsync: this,
-    )..repeat();
+    )..repeat(reverse: true);
   }
 
   @override
@@ -53,7 +51,7 @@ class _SeatTileState extends State<SeatTile>
   }
 
   Color seatColor(String status) {
-    if (status == 'woken_by_self') {
+    if (status == 'woken_by_self' || status == 'woken_by_other') {
       final double t = _controller.value * (celebrationColors.length - 1);
       final int index = t.floor();
       final double remain = t - index;
@@ -62,6 +60,7 @@ class _SeatTileState extends State<SeatTile>
           celebrationColors[(index + 1) % celebrationColors.length];
       return Color.lerp(start, end, remain) ?? Colors.lightGreen;
     }
+
     switch (status) {
       case 'available':
         return Colors.green;
@@ -71,8 +70,6 @@ class _SeatTileState extends State<SeatTile>
         return Colors.blue;
       case 'wake_waiting':
         return Colors.amber;
-      case 'woken_by_other':
-        return Colors.deepPurple;
       case 'done':
         return Colors.grey;
       case 'free':
@@ -88,11 +85,15 @@ class _SeatTileState extends State<SeatTile>
         return const Icon(Icons.bed, color: Colors.white, size: 16);
       case 'wake_waiting':
         return const Icon(Icons.alarm, color: Colors.white, size: 16);
-      case 'woken_by_other':
-        return const Icon(Icons.notifications, color: Colors.white, size: 16);
       case 'woken_by_self':
         return const Icon(
           Icons.local_fire_department,
+          color: Colors.redAccent,
+          size: 18,
+        );
+      case 'woken_by_other':
+        return const Icon(
+          Icons.waving_hand_rounded,
           color: Colors.redAccent,
           size: 18,
         );
@@ -131,138 +132,168 @@ class _SeatTileState extends State<SeatTile>
       builder: (context, child) {
         return Transform.scale(
           scale: scale,
-          child: SeatBox(
-            number: widget.seatNumber,
-            color: seatColor(status),
-            overlay: statusOverlay(status),
-            onTap: () async {
-              if (currentUid == null) return;
-              final seatRef = seatsRef.doc(widget.seatNumber.toString());
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SeatBox(
+                number: widget.seatNumber,
+                color: seatColor(status),
+                overlay: statusOverlay(status),
+                borderColor:
+                    status == 'wake_waiting'
+                        ? (_controller.value < 0.5
+                            ? Colors.red
+                            : Colors.transparent)
+                        : Colors.transparent,
+                onTap: () async {
+                  if (currentUid == null) return;
+                  final seatRef = seatsRef.doc(widget.seatNumber.toString());
 
-              if (isReservedByOther(reservedBy, currentUid)) {
-                if (status == 'wake_waiting') {
-                  showDialog(
-                    context: context,
-                    builder:
-                        (_) => AlertDialog(
-                          title: const Text('기상 대기 중인 좌석'),
-                          content: const Text('사용자를 깨우시겠습니까? QR을 생성하여 보여주세요.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('취소'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => GenerateWakeQrScreen(
-                                          seatId: widget.seatNumber.toString(),
-                                          roomDocId: widget.roomDocId,
-                                          targetUid: reservedBy,
-                                        ),
-                                  ),
-                                );
-                              },
-                              child: const Text('QR 생성'),
-                            ),
-                          ],
-                        ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('해당 좌석은 사용 중입니다. 다른 좌석을 선택해주세요.'),
-                    ),
-                  );
-                }
-                return;
-              }
-
-              if (isReservedByMe(reservedBy, currentUid)) {
-                showDialog(
-                  context: context,
-                  builder:
-                      (_) => AlertDialog(
-                        title: Text('${widget.seatNumber}번 좌석 반납할까요?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('취소'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              Navigator.pop(context);
-                              await seatRef.update({
-                                'status': 'available',
-                                'reservedBy': '',
-                                'sleepStart': null,
-                                'sleepDuration': 0,
-                                'sleepSessionId': '',
-                                'result': '',
-                                'wokeBy': '',
-                                'wakeTime': null,
-                                'wasWokenByOther': false,
-                                'pointsGiven': 0,
-                                'pointsRewardedToOther': 0,
-                                'isCompleted': false,
-                              });
-                              await roomRef.update({
-                                'usedSeats': FieldValue.increment(-1),
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    '${widget.seatNumber}번 좌석 반납 완료',
-                                  ),
+                  if (isReservedByOther(reservedBy, currentUid)) {
+                    if (status == 'wake_waiting') {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (_) => AlertDialog(
+                              title: const Text('기상 대기 중인 좌석'),
+                              content: const Text(
+                                '사용자를 깨우시겠습니까? QR을 생성하여 보여주세요.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('취소'),
                                 ),
-                              );
-                            },
-                            child: const Text('반납'),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => GenerateWakeQrScreen(
+                                              seatId:
+                                                  widget.seatNumber.toString(),
+                                              roomDocId: widget.roomDocId,
+                                              targetUid: reservedBy,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('QR 생성'),
+                                ),
+                              ],
+                            ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('해당 좌석은 사용 중입니다. 다른 좌석을 선택해주세요.'),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  if (isReservedByMe(reservedBy, currentUid)) {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (_) => AlertDialog(
+                            title: Text('${widget.seatNumber}번 좌석 반납할까요?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('취소'),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await seatRef.update({
+                                    'status': 'available',
+                                    'reservedBy': '',
+                                    'sleepStart': null,
+                                    'sleepDuration': 0,
+                                    'sleepSessionId': '',
+                                    'result': '',
+                                    'wokeBy': '',
+                                    'wakeTime': null,
+                                    'wasWokenByOther': false,
+                                    'pointsGiven': 0,
+                                    'pointsRewardedToOther': 0,
+                                    'isCompleted': false,
+                                  });
+                                  await roomRef.update({
+                                    'usedSeats': FieldValue.increment(-1),
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${widget.seatNumber}번 좌석 반납 완료',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text('반납'),
+                              ),
+                            ],
                           ),
-                        ],
+                    );
+                    return;
+                  }
+
+                  final existing =
+                      await seatsRef
+                          .where('reservedBy', isEqualTo: currentUid)
+                          .get();
+                  if (existing.docs.isNotEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('이미 예약한 좌석이 있습니다. 하나의 좌석만 선택할 수 있습니다.'),
                       ),
-                );
-                return;
-              }
+                    );
+                    return;
+                  }
 
-              final existing =
-                  await seatsRef
-                      .where('reservedBy', isEqualTo: currentUid)
-                      .get();
-              if (existing.docs.isNotEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('이미 예약한 좌석이 있습니다. 하나의 좌석만 선택할 수 있습니다.'),
+                  await seatRef.update({
+                    'status': 'reserved',
+                    'reservedBy': currentUid,
+                    'sleepStart': null,
+                    'sleepDuration': 0,
+                    'sleepSessionId': '',
+                    'result': '',
+                    'wokeBy': '',
+                    'wakeTime': null,
+                    'wasWokenByOther': false,
+                    'pointsGiven': 0,
+                    'pointsRewardedToOther': 0,
+                    'isCompleted': false,
+                  });
+
+                  await roomRef.update({'usedSeats': FieldValue.increment(1)});
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${widget.seatNumber}번 좌석 예약 완료')),
+                  );
+                },
+              ),
+
+              if (status == 'wake_waiting')
+                Positioned(
+                  bottom: 4,
+                  child: Text(
+                    '깨워줘!',
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      shadows: const [
+                        Shadow(color: Colors.white, blurRadius: 2),
+                      ],
+                    ),
                   ),
-                );
-                return;
-              }
-
-              await seatRef.update({
-                'status': 'reserved',
-                'reservedBy': currentUid,
-                'sleepStart': null,
-                'sleepDuration': 0,
-                'sleepSessionId': '',
-                'result': '',
-                'wokeBy': '',
-                'wakeTime': null,
-                'wasWokenByOther': false,
-                'pointsGiven': 0,
-                'pointsRewardedToOther': 0,
-                'isCompleted': false,
-              });
-
-              await roomRef.update({'usedSeats': FieldValue.increment(1)});
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${widget.seatNumber}번 좌석 예약 완료')),
-              );
-            },
+                ),
+            ],
           ),
         );
       },
