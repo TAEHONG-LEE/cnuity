@@ -1,10 +1,11 @@
-// ✅ SeatTile.dart (수정된 onTap 로직 포함)
+// ✅ SeatTile.dart (wake_waiting 상태에서 QR 생성 시 필수 파라미터 전달)
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'seat_box.dart';
+import 'package:cnuity/screens/kkaezam/qr/generate_wake_qr_screen.dart';
 
 class SeatTile extends StatefulWidget {
   final int seatNumber;
@@ -138,7 +139,6 @@ class _SeatTileState extends State<SeatTile>
               if (currentUid == null) return;
               final seatRef = seatsRef.doc(widget.seatNumber.toString());
 
-              // ✅ 타인이 예약한 좌석 클릭 시 처리
               if (isReservedByOther(reservedBy, currentUid)) {
                 if (status == 'wake_waiting') {
                   showDialog(
@@ -146,7 +146,7 @@ class _SeatTileState extends State<SeatTile>
                     builder:
                         (_) => AlertDialog(
                           title: const Text('기상 대기 중인 좌석'),
-                          content: const Text('사용자를 깨우시겠습니까?'),
+                          content: const Text('사용자를 깨우시겠습니까? QR을 생성하여 보여주세요.'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
@@ -155,13 +155,19 @@ class _SeatTileState extends State<SeatTile>
                             TextButton(
                               onPressed: () {
                                 Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('QR 스캔 화면으로 이동 예정'),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => GenerateWakeQrScreen(
+                                          seatId: widget.seatNumber.toString(),
+                                          roomDocId: widget.roomDocId,
+                                          targetUid: reservedBy,
+                                        ),
                                   ),
                                 );
                               },
-                              child: const Text('깨우기'),
+                              child: const Text('QR 생성'),
                             ),
                           ],
                         ),
@@ -176,7 +182,6 @@ class _SeatTileState extends State<SeatTile>
                 return;
               }
 
-              // ✅ 본인 좌석 클릭 시 반납 다이얼로그
               if (isReservedByMe(reservedBy, currentUid)) {
                 showDialog(
                   context: context,
@@ -224,7 +229,6 @@ class _SeatTileState extends State<SeatTile>
                 return;
               }
 
-              // ✅ 예약된 좌석이 있는지 확인 후 예약 처리
               final existing =
                   await seatsRef
                       .where('reservedBy', isEqualTo: currentUid)
