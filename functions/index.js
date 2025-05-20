@@ -8,7 +8,7 @@ const db = getFirestore();
 
 export const wakeReminderJob = onSchedule("every 1 minutes", async (event) => {
   const now = new Date();
-  const GRACE_SECONDS = 300;
+  const GRACE_SECONDS = 10;
 
   const seatSnaps = await db.collectionGroup("seats")
     .where("status", "==", "sleeping")
@@ -40,7 +40,33 @@ export const wakeReminderJob = onSchedule("every 1 minutes", async (event) => {
       const neighborUid = neighborData?.reservedBy;
       if (!neighborUid) continue;
 
-      // Firestore 알림 문서 저장
+      // ✅ 자기 자신에게는 별도 메시지
+      if (neighborUid === reservedBy) {
+        await db.collection("users").doc(reservedBy).collection("notifications").add({
+          title: `일어날 시간이에요!`,
+          body: `${seatId}번 좌석에서 일어나주세요.`,
+          createdAt: FieldValue.serverTimestamp(),
+          targetSeat: seatId,
+        });
+
+        const tokenSnap = await db.collection("users").doc(reservedBy).collection("fcmTokens").get();
+        const tokens = tokenSnap.docs.map(doc => doc.id);
+        if (tokens.length > 0) {
+          await getMessaging().sendEachForMulticast({
+            tokens,
+            notification: {
+              title: `일어날 시간이에요!`,
+              body: `${seatId}번 좌석에서 일어나주세요.`,
+            },
+            data: { targetSeat: seatId },
+          });
+          console.log(`📢 자기자신에게 알림 보냄 → ${reservedBy}`);
+        }
+
+        continue; // ❗ 중복 푸시 방지
+      }
+
+      // 🔔 다른 사용자에게 알림
       await db.collection("users").doc(neighborUid).collection("notifications").add({
         title: `${seatId}번 사용자가 아직 일어나지 않았어요`,
         body: `QR을 스캔해 기상 도와주면 포인트를 받을 수 있어요!`,
@@ -48,7 +74,6 @@ export const wakeReminderJob = onSchedule("every 1 minutes", async (event) => {
         targetSeat: seatId,
       });
 
-      // FCM 푸시 전송
       const tokenSnap = await db.collection("users").doc(neighborUid).collection("fcmTokens").get();
       const tokens = tokenSnap.docs.map(doc => doc.id);
       if (tokens.length > 0) {
@@ -64,7 +89,7 @@ export const wakeReminderJob = onSchedule("every 1 minutes", async (event) => {
       }
     }
 
-    // 상태 업데이트
+    // 🔄 상태 업데이트
     await seatDoc.ref.update({ status: "wake_waiting" });
     console.log(`🔄 상태 변경 → wake_waiting: ${seatId}`);
   }
