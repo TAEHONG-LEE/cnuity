@@ -282,7 +282,8 @@ class _KkaezamMissionScreenState extends State<KkaezamMissionScreen> {
                             ElevatedButton(
                               onPressed: () => _startMission(missionId),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey,
+                                backgroundColor: Color(0xFF5197FF),
+                                foregroundColor: Colors.white,
                               ),
                               child: const Text('도전하기'),
                             )

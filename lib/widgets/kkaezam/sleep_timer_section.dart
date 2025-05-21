@@ -84,9 +84,13 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
     if (snapshot.docs.isNotEmpty) {
       final seatDoc = snapshot.docs.first;
       final seatRef = seatDoc.reference;
+      final seatData = seatDoc.data();
+      final String seatId = seatData['seatId'];
+      final String roomDocId = seatRef.parent.parent!.id;
 
+      // ✅ 초 단위 기준으로 차감 포인트 계산
       final int requiredPoints =
-          sleepDuration <= 1800 ? 10 : (sleepDuration / 60).ceil();
+          sleepDuration <= 1800 ? 10 : (sleepDuration - 1800);
 
       if (currentPoint < requiredPoints) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,11 +111,26 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
         'totalUsedPoints': FieldValue.increment(requiredPoints),
       });
 
+      // ✅ sleep_sessions 생성
+      final sessionRef =
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection('sleep_sessions')
+              .doc();
+
+      await sessionRef.set({
+        'sessionId': sessionRef.id,
+        'startTime': now,
+        'sleepDuration': sleepDuration,
+        'seatId': seatId,
+        'roomDocId': roomDocId,
+      });
+
       sleepStartTime = now;
       isSleeping = true;
       _startTimer();
       setState(() {});
-      _startTimer();
     }
   }
 

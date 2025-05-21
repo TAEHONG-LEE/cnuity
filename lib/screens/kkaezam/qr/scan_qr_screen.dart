@@ -89,8 +89,18 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
     }
 
     final sessionDoc = sessionQuery.docs.first;
-    final sleepStart = (sessionDoc['startTime'] as Timestamp).toDate();
-    final int sleepDuration = sessionDoc['sleepDuration'] as int;
+
+    // 필수 필드 체크
+    final sleepStart = (sessionDoc['startTime'] as Timestamp?)?.toDate();
+    final int? sleepDuration = sessionDoc['sleepDuration'];
+
+    if (sleepStart == null || sleepDuration == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('세션 정보가 올바르지 않습니다.')));
+      return;
+    }
+
     final wakeTime = DateTime.now();
     final actualSleepMinutes = wakeTime.difference(sleepStart).inMinutes;
     final int targetSleepMinutes = sleepDuration ~/ 60;
@@ -99,20 +109,18 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
     final int overSleepMinutes = actualSleepMinutes - targetSleepMinutes;
 
     int pointsRecovered = 0;
-    int pointsToReward = 0;
+    int pointsToReward = 10; // ✅ 타인이 깨우면 항상 10포인트 지급
 
-    if (overSleepMinutes <= 10) {
+    if (overSleepMinutes <= 5) {
       pointsRecovered = reservedPoints;
-      pointsToReward = 0;
+    } else if (overSleepMinutes <= 15) {
+      pointsRecovered = (reservedPoints * 0.8).round();
     } else if (overSleepMinutes <= 30) {
-      pointsRecovered = reservedPoints - 10;
-      pointsToReward = 10;
+      pointsRecovered = (reservedPoints * 0.5).round();
     } else {
       pointsRecovered = 0;
-      pointsToReward = 10;
     }
 
-    // 세션 업데이트 (currentUid)
     await sessionDoc.reference.update({
       'endTime': Timestamp.fromDate(wakeTime),
       'actualDuration': wakeTime.difference(sleepStart).inSeconds,
@@ -121,7 +129,6 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
       'pointsRewardedToOther': pointsToReward,
     });
 
-    // 좌석 상태 업데이트
     await FirebaseFirestore.instance
         .collection('reading_rooms')
         .doc(roomDocId)
@@ -133,7 +140,6 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
           'isCompleted': true,
         });
 
-    // 내 정보 업데이트 (currentUid)
     final currentUserRef = FirebaseFirestore.instance
         .collection('users')
         .doc(currentUid);
@@ -152,15 +158,13 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
     });
 
     if (pointsRecovered > 0) {
-      final myLog = currentUserRef.collection('point_logs').doc();
-      await myLog.set({
+      await currentUserRef.collection('point_logs').add({
         'delta': pointsRecovered,
         'reason': '수면 목표 달성 포인트 복구',
         'timestamp': FieldValue.serverTimestamp(),
       });
     }
 
-    // 깨운 사람 포인트 지급 (targetUid)
     if (pointsToReward > 0) {
       final targetRef = FirebaseFirestore.instance
           .collection('users')
@@ -171,26 +175,40 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
         'wakeByOtherCount': FieldValue.increment(1),
       });
 
-      final logRef = targetRef.collection('point_logs').doc();
-      await logRef.set({
+      await targetRef.collection('point_logs').add({
         'delta': pointsToReward,
         'reason': '타인 기상 유도 포인트 보상',
         'timestamp': FieldValue.serverTimestamp(),
       });
     }
 
+    final roomSnap =
+        await FirebaseFirestore.instance
+            .collection('reading_rooms')
+            .doc(roomDocId)
+            .get();
+    final roomData = roomSnap.data();
+    final roomName = roomData?['name'] ?? roomDocId;
+    final seatName = '$roomName - $seatId번';
+    final targetSnapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(targetUid)
+            .get();
+    final wakerNickname = targetSnapshot.data()?['nickname'] ?? '상대방';
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder:
             (_) => WakeResultScreen(
-              seatName: '$roomDocId - $seatId번',
+              seatName: seatName,
               resultType: '타인에 의해 기상',
-              wakerNickname: '상대방',
+              wakerNickname: wakerNickname,
               sleepStart: sleepStart,
               wakeTime: wakeTime,
               sleepDuration: sleepDuration,
-              pointsEarned: pointsToReward,
+              pointsEarned: pointsRecovered, // ✅ 내가 복구한 포인트로 수정
               actualSleepMinutes: actualSleepMinutes,
               overSleepMinutes: overSleepMinutes,
             ),
