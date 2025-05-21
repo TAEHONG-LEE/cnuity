@@ -1,5 +1,3 @@
-// lib/widgets/kkaezam/sleep_timer_section.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -88,7 +86,6 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
       final String seatId = seatData['seatId'];
       final String roomDocId = seatRef.parent.parent!.id;
 
-      // ✅ 초 단위 기준으로 차감 포인트 계산
       final int requiredPoints =
           sleepDuration <= 1800 ? 10 : (sleepDuration - 1800);
 
@@ -111,7 +108,6 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
         'totalUsedPoints': FieldValue.increment(requiredPoints),
       });
 
-      // ✅ sleep_sessions 생성
       final sessionRef =
           FirebaseFirestore.instance
               .collection('users')
@@ -131,6 +127,61 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
       isSleeping = true;
       _startTimer();
       setState(() {});
+    }
+  }
+
+  Future<void> _cancelSleep() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collectionGroup('seats')
+            .where('reservedBy', isEqualTo: uid)
+            .limit(1)
+            .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final seatDoc = snapshot.docs.first;
+      final seatRef = seatDoc.reference;
+      final seatData = seatDoc.data();
+      final status = seatData['status'];
+
+      if (status == 'sleeping' || status == 'wake_waiting') {
+        final int duration = seatData['sleepDuration'];
+        final int refundPoints = duration <= 1800 ? 10 : (duration - 1800);
+
+        // 좌석 상태 복구
+        await seatRef.update({
+          'status': 'reserved',
+          'sleepStart': FieldValue.delete(),
+          'sleepDuration': FieldValue.delete(),
+        });
+
+        // 포인트 복구
+        final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+        await userRef.update({
+          'point': FieldValue.increment(refundPoints),
+          'totalUsedPoints': FieldValue.increment(-refundPoints),
+        });
+
+        await userRef.collection('point_logs').add({
+          'delta': refundPoints,
+          'reason': '수면 시작 후 취소로 인한 포인트 환급',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('수면이 취소되고 ${refundPoints}P가 환급되었습니다.')),
+        );
+
+        setState(() {
+          isSleeping = false;
+          elapsedTime = 0;
+        });
+
+        timer?.cancel();
+      }
     }
   }
 
@@ -198,6 +249,16 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
           ),
           const SizedBox(height: 20),
           if (canWakeUp) QrWakeButton(onComplete: widget.onFinish),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _cancelSleep,
+            icon: const Icon(Icons.cancel),
+            label: const Text('수면 취소'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+          ),
         ],
       ],
     );
