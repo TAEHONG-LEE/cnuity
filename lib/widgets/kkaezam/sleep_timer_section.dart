@@ -151,14 +151,25 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
         final int duration = seatData['sleepDuration'];
         final int refundPoints = duration <= 1800 ? 10 : (duration - 1800);
 
-        // 좌석 상태 복구
+        // ✅ [Optional] 수면 시작 후 5분 경과 시 취소 불가
+        /*
+      if (sleepStartTime != null) {
+        final secondsElapsed = DateTime.now().difference(sleepStartTime!).inSeconds;
+        if (secondsElapsed >= 300) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('수면 시작 후에는 5분 이내만 취소할 수 있습니다.')),
+          );
+          return;
+        }
+      }
+      */
+
         await seatRef.update({
           'status': 'reserved',
           'sleepStart': FieldValue.delete(),
           'sleepDuration': FieldValue.delete(),
         });
 
-        // 포인트 복구
         final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
         await userRef.update({
           'point': FieldValue.increment(refundPoints),

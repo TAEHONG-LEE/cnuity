@@ -8,7 +8,7 @@ const db = getFirestore();
 
 export const wakeReminderJob = onSchedule("every 1 minutes", async (event) => {
   const now = new Date();
-  const GRACE_SECONDS = 10;
+  const GRACE_SECONDS = 60 * 5; // 5분
 
   const seatSnaps = await db.collectionGroup("seats")
     .where("status", "==", "sleeping")
