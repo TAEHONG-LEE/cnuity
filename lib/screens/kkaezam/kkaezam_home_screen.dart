@@ -103,6 +103,7 @@ class KkaezamHomeScreen extends StatelessWidget {
                             'sleeping',
                             'woken_by_self',
                             'woken_by_other',
+                            'wake_waiting',
                           ],
                         )
                         .get();

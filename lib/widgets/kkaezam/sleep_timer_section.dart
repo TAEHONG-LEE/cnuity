@@ -41,7 +41,7 @@ class _SleepTimerSectionState extends State<SleepTimerSection> {
 
     if (snapshot.docs.isNotEmpty) {
       final data = snapshot.docs.first.data();
-      if (data['status'] == 'sleeping') {
+      if (data['status'] == 'sleeping' || data['status'] == 'wake_waiting') {
         final Timestamp start = data['sleepStart'];
         final int duration = data['sleepDuration'];
         sleepStartTime = start.toDate();
