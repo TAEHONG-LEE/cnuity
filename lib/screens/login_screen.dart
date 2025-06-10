@@ -18,6 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  bool _obscurePassword = true;
+
   Future<void> navigateToHome(BuildContext context) async {
     if (!context.mounted) return;
     await Future.delayed(const Duration(milliseconds: 300));
@@ -138,10 +140,20 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: _obscurePassword, // ← 변경
+              decoration: InputDecoration(
                 labelText: '비밀번호를 입력하세요',
                 border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -162,23 +174,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            ElevatedButton(
-              onPressed: adminAutoLogin,
-              child: const Text(
-                '자동 로그인',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5197FF),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 24,
-                ),
-              ),
-            ),
+            // ElevatedButton(
+            //   onPressed: adminAutoLogin,
+            //   child: const Text(
+            //     '자동 로그인',
+            //     style: TextStyle(
+            //       color: Colors.white,
+            //       fontWeight: FontWeight.bold,
+            //     ),
+            //   ),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: const Color(0xFF5197FF),
+            //     padding: const EdgeInsets.symmetric(
+            //       vertical: 10,
+            //       horizontal: 24,
+            //     ),
+            //   ),
+            // ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () {

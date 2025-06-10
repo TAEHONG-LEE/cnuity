@@ -52,7 +52,7 @@
     "reward": 10,
     "isRepeatable": true,
     "period": "none",
-    "active": true
+    "active": false
   },
   "wake_before_7am": {
     "title": "오전 7시 이전 기상",
@@ -63,7 +63,7 @@
     "reward": 10,
     "isRepeatable": true,
     "period": "daily",
-    "active": true
+    "active": false
   },
   "return_seat_success": {
     "title": "좌석 반납 성공",
@@ -74,7 +74,7 @@
     "reward": 10,
     "isRepeatable": true,
     "period": "daily",
-    "active": true
+    "active": false
   },
   "set_and_complete_goal": {
     "title": "학습 목표 달성",

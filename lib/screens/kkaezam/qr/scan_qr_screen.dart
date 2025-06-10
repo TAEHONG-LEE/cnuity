@@ -173,6 +173,7 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
         'point': FieldValue.increment(pointsToReward),
         'totalEarnedPoints': FieldValue.increment(pointsToReward),
         'wakeByOtherCount': FieldValue.increment(1),
+        'lastWakeTime': Timestamp.fromDate(wakeTime),
       });
 
       await targetRef.collection('point_logs').add({
@@ -351,6 +352,7 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
       'totalSessions': FieldValue.increment(1),
       'selfWakeCount': FieldValue.increment(1),
       'lastSessionId': sessionRef.id,
+      'lastWakeTime': Timestamp.fromDate(wakeTime),
       if (pointsDelta > 0)
         'totalEarnedPoints': FieldValue.increment(pointsDelta),
       if (pointsDelta < 0)
