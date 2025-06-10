@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'signup_screen.dart';
 import 'home/home_screen.dart';
+import 'find_idpassword_screen.dart';
 import 'admin/seat_initializer_screen.dart'; // 관리자용 화면 import
 import '../utils/fcm_helper.dart'; // FCM 관련 import
 
@@ -194,9 +195,15 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 12),
             TextButton(
               onPressed: () {
-                Fluttertoast.showToast(msg: "비밀번호 찾기 화면으로 이동");
+                Fluttertoast.showToast(msg: "아이디/비밀번호 찾기 화면으로 이동");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FindIdPasswordScreen(),
+                  ),
+                );
               },
-              child: const Text('비밀번호 찾기'),
+              child: const Text('아이디/비밀번호 찾기'),
             ),
             const SizedBox(height: 12),
             TextButton(
